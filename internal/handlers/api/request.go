@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+
 	"presto/configs"
 )
 
@@ -14,16 +15,19 @@ import (
 var client = http.Client{}
 
 // Creates an `http.Request` object and does a request using a global `http.Client`
-func MakeHTTPRequestToDiscord(endpoint string, method configs.HTTPMethod, body any) string {
+func MakeHTTPRequestToDiscord(endpoint string, method configs.HTTPMethod, body any) []byte {
 	var buffer bytes.Buffer
-	err := json.NewEncoder(&buffer).Encode(body)
-	if err != nil {
-		log.Println(err)
+
+	if body != nil {
+		err := json.NewEncoder(&buffer).Encode(body)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	// Ignore error just because (documentatio doesn't say anything about the cases in
 	// which an error is returned).
-	request, _ := http.NewRequest(string(method), configs.API_URL+"/"+endpoint, &buffer)
+	request, _ := http.NewRequest(string(method), configs.API_URL+endpoint, &buffer)
 
 	request.Header.Add("Authorization", "Bot "+configs.DISCORD_BOT_TOKEN)
 	request.Header.Add("Content-Type", "application/json")
@@ -31,10 +35,10 @@ func MakeHTTPRequestToDiscord(endpoint string, method configs.HTTPMethod, body a
 	// Ignore error since non-2xx status code doesn't cause any errors.
 	// However, if Discord's API is down, the request won't work. In the future, this will
 	// most likely cause some unwanted errors.
-	res, err := client.Do(request)
+	res, _ := client.Do(request)
 
 	// Ignore error since Discord's response body should always be appropriate
 	rawResponse, _ := io.ReadAll(res.Body)
 
-	return string(rawResponse)
+	return rawResponse
 }

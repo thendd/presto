@@ -1,5 +1,11 @@
 package configs
 
+// Even though `http` package already has constants with these
+// values, I thought it was better to create a separated type to distinguish
+// any strings of "GET", "POST" and so on
 type HTTPMethod string
 
-const MethodPost HTTPMethod = "POST"
+const (
+	MethodGet  HTTPMethod = "GET"
+	MethodPost HTTPMethod = "POST"
+)
