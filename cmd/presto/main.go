@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	log.Println("Started loading environmental variables")
+	log.Println("Started loading environment variables")
 
 	err := godotenv.Load()
 	if err != nil {
@@ -23,7 +23,7 @@ func main() {
 	}
 	configs.LoadDiscordConfig()
 
-	log.Println("Finished loading environmental WSS successfully")
+	log.Println("Finished loading environment variables successfully")
 
 	log.Println("Started fetching Discord's websocket URL")
 	gatewayData := api.GetGateway()
@@ -71,7 +71,6 @@ func main() {
 			if message["t"] == "READY" {
 				log.Println("Presto is ready to go")
 			}
-			log.Println(message)
 		}
 	}
 }
