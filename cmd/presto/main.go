@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -10,7 +8,6 @@ import (
 	"presto/internal/handlers/api"
 	ws "presto/internal/handlers/websocket"
 
-	"github.com/coder/websocket"
 	"github.com/joho/godotenv"
 )
 
@@ -38,37 +35,26 @@ func main() {
 	// that has been sent to Discord on every heartbeat.
 	// Using `websocket.Conn.Ping()` method works "perfectly", but I
 	// don't know if it's the best approach
-	var lastMessage map[string]any
-	incomingMessages := make(chan map[string]any)
+	var lastEvent ws.DiscordGatewayEventPayload
+	incomingEvents := make(chan ws.DiscordGatewayEventPayload)
 
 	log.Println("Triggered initial handshake")
-	ws.Identify(connection)
+	ws.SendIdentify(connection)
 	log.Println("Handshake ocurred successfully")
 
-	go ws.ReadIncomingMessages(connection, incomingMessages)
+	go ws.ReadIncomingMessages(connection, incomingEvents)
 
 	for {
 		select {
 		case <-time.After(40 * time.Second):
 			log.Println("Started sending heartbeat")
-			var heartbeat string
-
-			lastSequenceNumber := lastMessage["s"]
-			if lastSequenceNumber != nil {
-				heartbeat = fmt.Sprintf("{\"op\": 1, \"d\": %v}", lastSequenceNumber)
-			} else {
-				heartbeat = "{\"op\": 1, \"d\": null}"
-			}
-
-			err := connection.Write(context.Background(), websocket.MessageText, []byte(heartbeat))
-			if err != nil {
-				log.Fatal(err)
-			}
-
+			ws.SendHeartbeat(connection, lastEvent.SequenceNumber)
 			log.Println("Sent heartbeat")
-		case message := <-incomingMessages:
-			lastMessage = message
-			if message["t"] == "READY" {
+		case event := <-incomingEvents:
+			lastEvent = event
+
+			switch event.Name {
+			case "READY":
 				log.Println("Presto is ready to go")
 			}
 		}

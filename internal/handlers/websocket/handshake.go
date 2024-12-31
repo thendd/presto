@@ -10,7 +10,7 @@ import (
 	"github.com/coder/websocket"
 )
 
-func Identify(connection *websocket.Conn) {
+func SendIdentify(connection *websocket.Conn) {
 	// Currently using only `GUILDS` intents
 	toSend := fmt.Sprintf("{\"op\":2,\"d\":{\"token\":\"%s\",\"properties\":{\"os\":null,\"browser\":null,\"device\":null},\"intents\":1}}", configs.DISCORD_BOT_TOKEN)
 
