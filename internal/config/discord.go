@@ -1,11 +1,13 @@
-package configs
+package config
 
 import "os"
 
-var API_URL string
-var APPLICATION_ID string
-var TESTING_GUILD_ID string
-var DISCORD_BOT_TOKEN string
+var (
+	API_URL           string
+	APPLICATION_ID    string
+	TESTING_GUILD_ID  string
+	DISCORD_BOT_TOKEN string
+)
 
 func LoadDiscordConfig() {
 	API_URL = os.Getenv("BASE_DISCORD_API_URL") + "/v" + os.Getenv("DISCORD_API_VERSION")

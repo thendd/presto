@@ -23,7 +23,7 @@ func ReadIncomingMessages(connection *websocket.Conn, incomingMessages chan Disc
 		}
 
 		var message DiscordGatewayEventPayload
-		json.Unmarshal(rawMessage, message)
+		json.Unmarshal(rawMessage, &message)
 
 		incomingMessages <- message
 	}

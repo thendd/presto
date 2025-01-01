@@ -1,9 +1,11 @@
-package api
+package gateway
 
 import (
 	"encoding/json"
+	"log"
 
-	"presto/configs"
+	"presto/internal/constants"
+	"presto/internal/handlers/api"
 )
 
 type sessionStartLimitObject struct {
@@ -21,8 +23,12 @@ type getGatewayResponseBody struct {
 
 // Gets the WSS URL so that the bot can listen to interactions, created messages, etc
 func GetGateway() (response getGatewayResponseBody) {
-	rawResponse := MakeHTTPRequestToDiscord("/gateway/bot", configs.MethodGet, nil)
+	rawResponse, statusCode := api.MakeHTTPRequestToDiscord("/gateway/bot", constants.METHOD_GET, nil)
 	json.Unmarshal(rawResponse, &response)
+
+	if statusCode != 200 {
+		log.Fatalf("Could not get gateway URL. Expected status code 200 and got %d", statusCode)
+	}
 
 	return
 }

@@ -7,7 +7,8 @@ import (
 	"log"
 	"net/http"
 
-	"presto/configs"
+	"presto/internal/config"
+	"presto/internal/types"
 )
 
 // TODO: using a client in the way I'm using right now might lead into some problems in the future
@@ -15,7 +16,7 @@ import (
 var client = http.Client{}
 
 // Creates an `http.Request` object and does a request using a global `http.Client`
-func MakeHTTPRequestToDiscord(endpoint string, method configs.HTTPMethod, body any) []byte {
+func MakeHTTPRequestToDiscord(endpoint string, method types.HTTPMethod, body any) ([]byte, int) {
 	var buffer bytes.Buffer
 
 	if body != nil {
@@ -27,9 +28,9 @@ func MakeHTTPRequestToDiscord(endpoint string, method configs.HTTPMethod, body a
 
 	// Ignore error just because (documentatio doesn't say anything about the cases in
 	// which an error is returned).
-	request, _ := http.NewRequest(string(method), configs.API_URL+endpoint, &buffer)
+	request, _ := http.NewRequest(string(method), config.API_URL+endpoint, &buffer)
 
-	request.Header.Add("Authorization", "Bot "+configs.DISCORD_BOT_TOKEN)
+	request.Header.Add("Authorization", "Bot "+config.DISCORD_BOT_TOKEN)
 	request.Header.Add("Content-Type", "application/json")
 
 	// Ignore error since non-2xx status code doesn't cause any errors.
@@ -40,5 +41,5 @@ func MakeHTTPRequestToDiscord(endpoint string, method configs.HTTPMethod, body a
 	// Ignore error since Discord's response body should always be appropriate
 	rawResponse, _ := io.ReadAll(res.Body)
 
-	return rawResponse
+	return rawResponse, res.StatusCode
 }
