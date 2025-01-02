@@ -31,7 +31,7 @@ func main() {
 	log.Println("Finished fetching Discord's WSS URL successfully")
 
 	log.Println("Started connection to Discord's WSS")
-	connection := ws.ConnnectToWebsocket(gatewayData.URL)
+	ws.ConnnectToWebsocket(gatewayData.URL)
 	log.Println("Performed websocket handshake with Discord's WSS")
 
 	log.Println("Started listening to WSS' messages")
@@ -43,20 +43,20 @@ func main() {
 	incomingEvents := make(chan ws.DiscordGatewayEventPayload)
 
 	log.Println("Triggered initial handshake")
-	ws.SendIdentify(connection)
+	ws.SendIdentify()
 	log.Println("Handshake ocurred successfully")
 
 	log.Println("Started registering application commands")
 	setup.RegisterCommands()
 	log.Println("Finished registering commands successfully")
 
-	go ws.ReadIncomingMessages(connection, incomingEvents)
+	go ws.ReadIncomingMessages(incomingEvents)
 
 	for {
 		select {
 		case <-time.After(40 * time.Second):
 			log.Println("Started sending heartbeat")
-			ws.SendHeartbeat(connection, lastEvent.SequenceNumber)
+			ws.SendHeartbeat(lastEvent.SequenceNumber)
 			log.Println("Sent heartbeat")
 		case event := <-incomingEvents:
 			lastEvent = event

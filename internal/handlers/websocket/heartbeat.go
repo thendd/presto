@@ -9,7 +9,7 @@ import (
 )
 
 // Sends a heartbeat to Discord's WSS
-func SendHeartbeat(connection *websocket.Conn, lastSequenceNumber any) {
+func SendHeartbeat(lastSequenceNumber any) {
 	var heartbeat string
 
 	if lastSequenceNumber != nil {
@@ -18,7 +18,7 @@ func SendHeartbeat(connection *websocket.Conn, lastSequenceNumber any) {
 		heartbeat = "{\"op\": 1, \"d\": null}"
 	}
 
-	err := connection.Write(context.Background(), websocket.MessageText, []byte(heartbeat))
+	err := Connection.Write(context.Background(), websocket.MessageText, []byte(heartbeat))
 	if err != nil {
 		log.Fatal(err)
 	}

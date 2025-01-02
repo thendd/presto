@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-
-	"github.com/coder/websocket"
 )
 
 type DiscordGatewayEventPayload struct {
@@ -15,9 +13,9 @@ type DiscordGatewayEventPayload struct {
 	Name           string `json:"t"`
 }
 
-func ReadIncomingMessages(connection *websocket.Conn, incomingMessages chan DiscordGatewayEventPayload) {
+func ReadIncomingMessages(incomingMessages chan DiscordGatewayEventPayload) {
 	for {
-		_, rawMessage, err := connection.Read(context.Background())
+		_, rawMessage, err := Connection.Read(context.Background())
 		if err != nil {
 			log.Println("Error while reading message: ", err)
 		}

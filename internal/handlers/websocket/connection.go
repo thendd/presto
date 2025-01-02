@@ -7,11 +7,15 @@ import (
 	"github.com/coder/websocket"
 )
 
+var Connection *websocket.Conn
+
 func ConnnectToWebsocket(URL string) *websocket.Conn {
 	ws, _, err := websocket.Dial(context.Background(), URL, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return ws
+	Connection = ws
+
+	return Connection
 }
