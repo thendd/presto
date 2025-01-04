@@ -27,7 +27,7 @@ func MakeRequest(endpoint string, method string, body any) ([]byte, int) {
 
 	// Ignore error just because (documentatio doesn't say anything about the cases in
 	// which an error is returned).
-	request, _ := http.NewRequest(method, config.BASE_URL+endpoint, &buffer)
+	request, _ := http.NewRequest(method, config.API_BASE_URL+endpoint, &buffer)
 
 	request.Header.Add("Authorization", "Bot "+config.DISCORD_BOT_TOKEN)
 	request.Header.Add("Content-Type", "application/json")

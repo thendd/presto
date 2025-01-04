@@ -21,6 +21,8 @@ func OnEventReceive(incomingEvents chan EventPayload) {
 			log.Println("Error while reading event: ", err)
 		}
 
+		log.Println(string(rawEvent))
+
 		var event EventPayload
 		json.Unmarshal(rawEvent, &event)
 

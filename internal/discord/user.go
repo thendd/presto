@@ -1,7 +1,7 @@
 package discord
 
 type User struct {
-	ID            any    `json:"id,omitempty"`
+	ID            string `json:"id,omitempty"`
 	Username      string `json:"username,omitempty"`
 	Discriminator string `json:"discriminator,omitempty"`
 	Avatar        string `json:"avatar,omitempty"`

@@ -22,23 +22,39 @@ const (
 	EMBED_COLOR_YELLOW EmbedColor = 0xF6AE2D
 )
 
+const (
+	MESSAGE_FLAG_CROSSPOSTED                            MessageFlag = 1    // 1 << 0
+	MESSAGE_FLAG_IS_CROSSPOST                           MessageFlag = 2    // 1 << 1
+	MESSAGE_FLAG_SUPPRESS_EMBEDS                        MessageFlag = 4    // 1 << 2
+	MESSAGE_FLAG_SOURCE_MESSAGE_DELETED                 MessageFlag = 8    // 1 << 3
+	MESSAGE_FLAG_URGENT                                 MessageFlag = 16   // 1 << 4
+	MESSAGE_FLAG_HAS_THREAD                             MessageFlag = 32   // 1 << 5
+	MESSAGE_FLAG_EPHEMERAL                              MessageFlag = 64   // 1 << 6
+	MESSAGE_FLAG_LOADING                                MessageFlag = 128  // 1 << 7
+	MESSAGE_FLAG_FAILED_TO_MENTION_SOME_ROLES_IN_THREAD MessageFlag = 256  // 1 << 8
+	MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS                 MessageFlag = 4096 // 1 << 12
+	MESSAGE_FLAG_IS_VOICE_MESSAGE                       MessageFlag = 8192 // 1 << 13
+)
+
 type (
 	MessageComponentType  int
 	MessageComponentStyle int
 	EmbedColor            int
+	MessageFlag           int
 )
 
 type Message struct {
-	ID              any     `json:"id,omitempty"`
-	ChannelID       any     `json:"channel_id,omitempty"`
-	Author          *User   `json:"author,omitempty"`
-	Content         string  `json:"content,omitempty"`
-	Timestamp       string  `json:"timestamp,omitempty"`
-	EditedTimestamp string  `json:"edited_timestamp,omitempty"`
-	TTS             bool    `json:"tts,omitempty"`
-	MentionEveryone bool    `json:"mention_everyone,omitempty"`
-	Mentions        []User  `json:"mentions,omitempty"`
-	Embeds          []Embed `json:"embeds,omitempty"`
+	ID              any         `json:"id,omitempty"`
+	ChannelID       string      `json:"channel_id,omitempty"`
+	Author          *User       `json:"author,omitempty"`
+	Content         string      `json:"content,omitempty"`
+	Timestamp       string      `json:"timestamp,omitempty"`
+	EditedTimestamp string      `json:"edited_timestamp,omitempty"`
+	TTS             bool        `json:"tts,omitempty"`
+	MentionEveryone bool        `json:"mention_everyone,omitempty"`
+	Mentions        []User      `json:"mentions,omitempty"`
+	Embeds          []Embed     `json:"embeds,omitempty"`
+	Flags           MessageFlag `json:"flags,omitempty"`
 }
 
 type Embed struct {

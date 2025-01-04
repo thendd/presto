@@ -10,6 +10,7 @@ type InteractionCreatePayload struct {
 	ApplicationID any                          `json:"application_id"`
 	Type          InteractionType              `json:"type"`
 	Data          InteractionCreatePayloadData `json:"data,omitempty"`
+	Guild         Guild                        `json:"guild,omitempty"`
 	GuildID       string                       `json:"guild_id,omitempty"`
 	ChannelID     string                       `json:"channel_id,omitempty"`
 	Member        GuildMember                  `json:"member,omitempty"`
@@ -29,7 +30,8 @@ type InteractionCreatePayloadData struct {
 	Options       []InteractionCreatePayloadDataOption `json:"options,omitempty"`
 	CustomID      string                               `json:"custom_id,omitempty"`
 	ComponentType int                                  `json:"component_type,omitempty"`
-	TargetID      any                                  `json:"target_id,omitempty"`
+	TargetID      string                               `json:"target_id,omitempty"`
+	Components    []MessageComponent                   `json:"components,omitempty"`
 }
 
 type InteractionCreatePayloadDataOption struct {
