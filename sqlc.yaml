@@ -1,0 +1,13 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "./internal/database/queries.sql"
+    schema: "./internal/database/schema.sql"
+    gen:
+      go:
+        package: "database"
+        out: "./internal/database"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: integer
+            go_type: int

@@ -1,15 +1,19 @@
 package application_commands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"presto/internal/bot/message_components"
+	"presto/internal/database"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
 	"presto/internal/discord/api/cache"
 	"presto/internal/discord/cdn"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var Warn = NewUserCommand("Warn", WarnHandler)
@@ -44,17 +48,42 @@ func WarnHandler(interaction api.Interaction) {
 }
 
 func WarnModelHandler(interaction api.Interaction) {
+	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
+
+	queries := database.New(database.Connection)
+	guildData, _ := queries.GetGuild(context.Background(), interaction.Data.GuildID)
+	userWarnings, err := queries.GetWarningsFromWarnedUser(context.Background(), database.GetWarningsFromWarnedUserParams{GuildID: interaction.Data.GuildID, UserID: targetId})
+	if err != nil {
+		userWarnings, _ = queries.CreateWarnedUser(context.Background(), database.CreateWarnedUserParams{
+			GuildID: interaction.Data.GuildID,
+			UserID:  targetId,
+		})
+	}
+
+	remainingWarnings := guildData.MaxWarningsPerUser.Int32 - userWarnings.Int32 - 1
+
 	interaction.RespondWithMessage(discord.Message{
 		Embeds: []discord.Embed{
 			{
-				Description: "Warning was sent successfully. The user will receive a message in their DM with the reason of the warning.",
+				Description: fmt.Sprintf("Warning was sent successfully. The user will receive a message in their DM with the reason of the warning. They still have **%d warnings left**.", remainingWarnings),
 				Color:       discord.EMBED_COLOR_GREEN,
 			},
 		},
 		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 	})
 
-	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
+	// Not sure whether this is the best way to do this, but if it's working, it's working
+	x := pgtype.Int4{
+		Int32: userWarnings.Int32 + 1,
+		Valid: true,
+	}
+
+	err = queries.UpdateWarnedUserWarnings(context.Background(), database.UpdateWarnedUserWarningsParams{
+		Warnings: x,
+		GuildID:  interaction.Data.GuildID,
+		UserID:   targetId,
+	})
+
 	dmChannel := cache.GetDMChannelByRecipientID(targetId)
 	if dmChannel.ID == "" {
 		dmChannel = api.CreateDM(targetId)

@@ -3,7 +3,8 @@ package config
 import (
 	"log"
 
-	"presto/internal/discord/config"
+	database_config "presto/internal/database/config"
+	discord_config "presto/internal/discord/config"
 
 	"github.com/joho/godotenv"
 )
@@ -15,7 +16,8 @@ func LoadEnvironmentVariables() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	config.LoadDiscordConfig()
+	discord_config.Load()
+	database_config.Load()
 
 	log.Println("Finished loading environment variables successfully")
 }

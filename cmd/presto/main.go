@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"time"
 
 	"presto/internal/bot"
 	"presto/internal/config"
+	"presto/internal/database"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
 	ws "presto/internal/discord/websocket"
@@ -15,6 +17,9 @@ import (
 
 func main() {
 	config.LoadEnvironmentVariables()
+	database.Connect()
+	defer database.Connection.Close(context.Background())
+
 	gatewayData := api.GetGateway()
 	ws.Connnect(gatewayData.URL)
 
@@ -46,6 +51,18 @@ func main() {
 				json.Unmarshal(eventData, &interactionData)
 
 				events.ReceiveInteractionCreate(interactionData)
+			case events.GUILD_CREATE:
+				// Even though an unavailable guild object might be sent,
+				// it would still have the id property, which is the only one
+				// that will be used
+				var guildData discord.Guild
+				json.Unmarshal(eventData, &guildData)
+
+				queries := database.New(database.Connection)
+				createdGuild, _ := queries.CreateGuild(context.Background(), guildData.ID)
+				if createdGuild.ID != "" {
+					log.Printf("Created guild (%s) in database successfully\n", guildData.ID)
+				}
 			}
 		}
 	}
