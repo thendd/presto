@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"presto/internal/discord"
@@ -45,9 +44,7 @@ func (ctx Interaction) RespondWithMessage(message discord.Message) {
 		Data: message,
 	}
 
-	r, s := MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
-	log.Println(string(r))
-	log.Println(s)
+	MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
 }
 
 func (ctx Interaction) RespondWithModal(modal Modal) {

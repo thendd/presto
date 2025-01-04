@@ -44,9 +44,18 @@ func WarnHandler(interaction api.Interaction) {
 }
 
 func WarnModelHandler(interaction api.Interaction) {
+	interaction.RespondWithMessage(discord.Message{
+		Embeds: []discord.Embed{
+			{
+				Description: "Warning was sent successfully. The user will receive a message in their DM with the reason of the warning.",
+				Color:       discord.EMBED_COLOR_GREEN,
+			},
+		},
+		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+	})
+
 	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
 	dmChannel := cache.GetDMChannelByRecipientID(targetId)
-
 	if dmChannel.ID == "" {
 		dmChannel = api.CreateDM(targetId)
 	}
@@ -79,15 +88,5 @@ func WarnModelHandler(interaction api.Interaction) {
 				},
 			},
 		},
-	})
-
-	interaction.RespondWithMessage(discord.Message{
-		Embeds: []discord.Embed{
-			{
-				Description: "Warning was sent successfully. The user received a message in their DM with the reason of the warning.",
-				Color:       discord.EMBED_COLOR_GREEN,
-			},
-		},
-		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 	})
 }
