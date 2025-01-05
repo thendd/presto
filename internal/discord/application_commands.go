@@ -9,6 +9,20 @@ const (
 	APPLICATION_COMMAND_TYPE_PRIMARY_ENTRY_POINT ApplicationCommandType = 4
 )
 
+const (
+	APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND       ApplicationCommandOptionType = 1
+	APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP ApplicationCommandOptionType = 2
+	APPLICATION_COMMAND_OPTION_TYPE_STRING            ApplicationCommandOptionType = 3
+	APPLICATION_COMMAND_OPTION_TYPE_INTEGER           ApplicationCommandOptionType = 4
+	APPLICATION_COMMAND_OPTION_TYPE_BOOLEAN           ApplicationCommandOptionType = 5
+	APPLICATION_COMMAND_OPTION_TYPE_USER              ApplicationCommandOptionType = 6
+	APPLICATION_COMMAND_OPTION_TYPE_CHANNEL           ApplicationCommandOptionType = 7
+	APPLICATION_COMMAND_OPTION_TYPE_ROLE              ApplicationCommandOptionType = 8
+	APPLICATION_COMMAND_OPTION_TYPE_MENTIONABLE       ApplicationCommandOptionType = 9
+	APPLICATION_COMMAND_OPTION_TYPE_NUMBER            ApplicationCommandOptionType = 10
+	APPLICATION_COMMAND_OPTION_TYPE_ATTACHMENT        ApplicationCommandOptionType = 11
+)
+
 type (
 	ApplicationCommandType       int
 	ApplicationCommandOptionType int

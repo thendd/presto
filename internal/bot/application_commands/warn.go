@@ -16,10 +16,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-var Warn = NewUserCommand("Warn", WarnHandler)
+var (
+	WarnUserCommand  = NewUserCommand("Warn", WarnHandler)
+	WarnSlashCommand = NewSlashCommand("warn", "Sends a warning to the user", []discord.ApplicationCommandOption{
+		{
+			Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_USER,
+			Name:        "user",
+			Description: "The user you would like to send a warning to",
+			Required:    true,
+		},
+	}, WarnHandler)
+)
 
 func WarnHandler(interaction api.Interaction) {
-	modalCustomId := fmt.Sprintf("%d-%s-%s", time.Now().UnixMilli(), interaction.Data.Member.User.ID, interaction.Data.Data.TargetID)
+	modalCustomId := fmt.Sprintf("%d-%s-", time.Now().UnixMilli(), interaction.Data.Member.User.ID)
+
+	switch interaction.Data.Data.Type {
+	case discord.APPLICATION_COMMAND_TYPE_CHAT_INPUT:
+		modalCustomId += interaction.Data.Data.Options[0].Value.(string)
+	case discord.APPLICATION_COMMAND_TYPE_USER:
+		modalCustomId += interaction.Data.Data.TargetID
+	}
 
 	modal := message_components.ModalWithHandler{
 		Data: api.Modal{
@@ -78,7 +95,7 @@ func WarnModelHandler(interaction api.Interaction) {
 		Valid: true,
 	}
 
-	err = queries.UpdateWarnedUserWarnings(context.Background(), database.UpdateWarnedUserWarningsParams{
+	queries.UpdateWarnedUserWarnings(context.Background(), database.UpdateWarnedUserWarningsParams{
 		Warnings: x,
 		GuildID:  interaction.Data.GuildID,
 		UserID:   targetId,

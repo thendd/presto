@@ -25,7 +25,7 @@ type InteractionCreatePayload struct {
 type InteractionCreatePayloadData struct {
 	ID            any                                  `json:"id"`
 	Name          string                               `json:"name"`
-	Type          int                                  `json:"type"`
+	Type          ApplicationCommandType               `json:"type"`
 	Resolved      ResolvedData                         `json:"resolved,omitempty"`
 	Options       []InteractionCreatePayloadDataOption `json:"options,omitempty"`
 	CustomID      string                               `json:"custom_id,omitempty"`
@@ -37,7 +37,7 @@ type InteractionCreatePayloadData struct {
 type InteractionCreatePayloadDataOption struct {
 	Name    string                               `json:"name"`
 	Type    int                                  `json:"type"`
-	Value   interface{}                          `json:"value,omitempty"`
+	Value   any                                  `json:"value,omitempty"`
 	Options []InteractionCreatePayloadDataOption `json:"options,omitempty"`
 }
 

@@ -10,7 +10,7 @@ import (
 	"presto/internal/discord/api"
 )
 
-var RegisteredCommands = []application_commands.ApplicationCommandWithHandler{application_commands.Ping, application_commands.Warn}
+var RegisteredCommands = []application_commands.ApplicationCommandWithHandler{application_commands.Ping, application_commands.WarnUserCommand, application_commands.WarnSlashCommand}
 
 func RegisterCommands() {
 	log.Println("Started registering application commands")
