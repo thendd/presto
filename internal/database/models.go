@@ -13,8 +13,8 @@ type Guild struct {
 	MaxWarningsPerUser pgtype.Int4
 }
 
-type WarnedUser struct {
-	GuildID  string
+type GuildMember struct {
 	UserID   string
+	GuildID  string
 	Warnings pgtype.Int4
 }

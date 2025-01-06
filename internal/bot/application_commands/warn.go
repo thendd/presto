@@ -80,9 +80,9 @@ func WarnModelHandler(interaction api.Interaction) {
 
 	queries := database.New(database.Connection)
 	guildData, _ := queries.GetGuild(context.Background(), interaction.Data.GuildID)
-	userWarnings, err := queries.GetWarningsFromWarnedUser(context.Background(), database.GetWarningsFromWarnedUserParams{GuildID: interaction.Data.GuildID, UserID: targetId})
+	userWarnings, err := queries.GetWarningsFromGuildMember(context.Background(), database.GetWarningsFromGuildMemberParams{GuildID: interaction.Data.GuildID, UserID: targetId})
 	if err != nil {
-		userWarnings, _ = queries.CreateWarnedUser(context.Background(), database.CreateWarnedUserParams{
+		userWarnings, _ = queries.CreateGuildMember(context.Background(), database.CreateGuildMemberParams{
 			GuildID: interaction.Data.GuildID,
 			UserID:  targetId,
 		})
@@ -106,7 +106,7 @@ func WarnModelHandler(interaction api.Interaction) {
 		Valid: true,
 	}
 
-	queries.UpdateWarnedUserWarnings(context.Background(), database.UpdateWarnedUserWarningsParams{
+	queries.UpdateGuildMemberWarnings(context.Background(), database.UpdateGuildMemberWarningsParams{
 		Warnings: x,
 		GuildID:  interaction.Data.GuildID,
 		UserID:   targetId,

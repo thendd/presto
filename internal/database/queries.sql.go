@@ -22,17 +22,17 @@ func (q *Queries) CreateGuild(ctx context.Context, id string) (Guild, error) {
 	return i, err
 }
 
-const createWarnedUser = `-- name: CreateWarnedUser :one
-INSERT INTO warned_users (guild_id, user_id) VALUES ($1, $2) RETURNING warnings
+const createGuildMember = `-- name: CreateGuildMember :one
+INSERT INTO guild_members (guild_id, user_id) VALUES ($1, $2) RETURNING warnings
 `
 
-type CreateWarnedUserParams struct {
+type CreateGuildMemberParams struct {
 	GuildID string
 	UserID  string
 }
 
-func (q *Queries) CreateWarnedUser(ctx context.Context, arg CreateWarnedUserParams) (pgtype.Int4, error) {
-	row := q.db.QueryRow(ctx, createWarnedUser, arg.GuildID, arg.UserID)
+func (q *Queries) CreateGuildMember(ctx context.Context, arg CreateGuildMemberParams) (pgtype.Int4, error) {
+	row := q.db.QueryRow(ctx, createGuildMember, arg.GuildID, arg.UserID)
 	var warnings pgtype.Int4
 	err := row.Scan(&warnings)
 	return warnings, err
@@ -55,33 +55,33 @@ func (q *Queries) GetGuild(ctx context.Context, id string) (Guild, error) {
 	return i, err
 }
 
-const getWarningsFromWarnedUser = `-- name: GetWarningsFromWarnedUser :one
-SELECT warnings FROM warned_users WHERE guild_id = $1 AND user_id = $2 LIMIT 1
+const getWarningsFromGuildMember = `-- name: GetWarningsFromGuildMember :one
+SELECT warnings FROM guild_members WHERE guild_id = $1 AND user_id = $2 LIMIT 1
 `
 
-type GetWarningsFromWarnedUserParams struct {
+type GetWarningsFromGuildMemberParams struct {
 	GuildID string
 	UserID  string
 }
 
-func (q *Queries) GetWarningsFromWarnedUser(ctx context.Context, arg GetWarningsFromWarnedUserParams) (pgtype.Int4, error) {
-	row := q.db.QueryRow(ctx, getWarningsFromWarnedUser, arg.GuildID, arg.UserID)
+func (q *Queries) GetWarningsFromGuildMember(ctx context.Context, arg GetWarningsFromGuildMemberParams) (pgtype.Int4, error) {
+	row := q.db.QueryRow(ctx, getWarningsFromGuildMember, arg.GuildID, arg.UserID)
 	var warnings pgtype.Int4
 	err := row.Scan(&warnings)
 	return warnings, err
 }
 
-const updateWarnedUserWarnings = `-- name: UpdateWarnedUserWarnings :exec
-UPDATE warned_users SET warnings = $1 WHERE guild_id = $2 AND user_id = $3
+const updateGuildMemberWarnings = `-- name: UpdateGuildMemberWarnings :exec
+UPDATE guild_members SET warnings = $1 WHERE guild_id = $2 AND user_id = $3
 `
 
-type UpdateWarnedUserWarningsParams struct {
+type UpdateGuildMemberWarningsParams struct {
 	Warnings pgtype.Int4
 	GuildID  string
 	UserID   string
 }
 
-func (q *Queries) UpdateWarnedUserWarnings(ctx context.Context, arg UpdateWarnedUserWarningsParams) error {
-	_, err := q.db.Exec(ctx, updateWarnedUserWarnings, arg.Warnings, arg.GuildID, arg.UserID)
+func (q *Queries) UpdateGuildMemberWarnings(ctx context.Context, arg UpdateGuildMemberWarningsParams) error {
+	_, err := q.db.Exec(ctx, updateGuildMemberWarnings, arg.Warnings, arg.GuildID, arg.UserID)
 	return err
 }
