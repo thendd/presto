@@ -90,6 +90,40 @@ func WarnModelHandler(interaction api.Interaction) {
 
 	remainingWarnings := guildData.MaxWarningsPerUser.Int32 - userWarnings.Int32 - 1
 
+	dmChannel := cache.GetDMChannelByRecipientID(targetId)
+	if dmChannel.ID == "" {
+		dmChannel = api.CreateDM(targetId)
+	}
+
+	guild := cache.GetGuildById(interaction.Data.GuildID)
+	if guild.Name == "" {
+		guild = api.GetGuildById(interaction.Data.GuildID)
+	}
+
+	if remainingWarnings < 0 {
+		interaction.RespondWithMessage(discord.Message{
+			Embeds: []discord.Embed{
+				{
+					Description: "As the user has already reached the limit of warnings, they will be banned.",
+					Color:       discord.EMBED_COLOR_GREEN,
+				},
+			},
+			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+		})
+
+		api.BanUser(guildData.ID, targetId)
+
+		api.SendMessage(discord.Message{
+			ChannelID: dmChannel.ID,
+			Embeds:    []discord.Embed{discord.EmbedColor
+				{
+					Description: fmt.Sprintf("You were banned from %s because you have received too many warnings.", guild.Name),
+					Color: discord.EMBED_COLOR_RED,
+				}
+			},
+		})
+	}
+
 	interaction.RespondWithMessage(discord.Message{
 		Embeds: []discord.Embed{
 			{
@@ -111,16 +145,6 @@ func WarnModelHandler(interaction api.Interaction) {
 		GuildID:  interaction.Data.GuildID,
 		UserID:   targetId,
 	})
-
-	dmChannel := cache.GetDMChannelByRecipientID(targetId)
-	if dmChannel.ID == "" {
-		dmChannel = api.CreateDM(targetId)
-	}
-
-	guild := cache.GetGuildById(interaction.Data.GuildID)
-	if guild.Name == "" {
-		guild = api.GetGuildById(interaction.Data.GuildID)
-	}
 
 	warningEmbedDescription := fmt.Sprintf("You were warned in the server **%s** ", guild.Name)
 	if interaction.Data.Data.Components[0].Components[0].Value != "" {
