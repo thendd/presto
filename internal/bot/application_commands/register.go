@@ -33,3 +33,13 @@ func NewUserCommand(name string, handler func(api.Interaction)) ApplicationComma
 		},
 	}
 }
+
+func NewMessageCommand(name string, handler func(api.Interaction)) ApplicationCommandWithHandler {
+	return ApplicationCommandWithHandler{
+		Handler: handler,
+		Data: discord.ApplicationCommand{
+			Type: discord.APPLICATION_COMMAND_TYPE_MESSAGE,
+			Name: name,
+		},
+	}
+}

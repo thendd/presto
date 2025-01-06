@@ -44,7 +44,7 @@ type (
 )
 
 type Message struct {
-	ID              any         `json:"id,omitempty"`
+	ID              string      `json:"id,omitempty"`
 	ChannelID       string      `json:"channel_id,omitempty"`
 	Author          *User       `json:"author,omitempty"`
 	Content         string      `json:"content,omitempty"`
@@ -119,7 +119,7 @@ type MessageComponent struct {
 	Placeholder string                `json:"placeholder,omitempty"`
 	MinLength   int                   `json:"min_length,omitempty"`
 	MaxLength   int                   `json:"max_length,omitempty"`
-	Required    bool                  `json:"required,omitempty"`
+	Required    bool                  `json:"required"`
 	Value       string                `json:"value,omitempty"`
 	Options     []SelectOption        `json:"options,omitempty"`
 	Components  []MessageComponent    `json:"components,omitempty"`

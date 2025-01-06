@@ -26,9 +26,12 @@ var (
 			Required:    true,
 		},
 	}, WarnHandler)
+	WarnMessageCommand = NewMessageCommand("Warn", WarnHandler)
 )
 
 func WarnHandler(interaction api.Interaction) {
+	textInputLabel := "Reason"
+	isTextInputRequired := true
 	modalCustomId := fmt.Sprintf("%d-%s-", time.Now().UnixMilli(), interaction.Data.Member.User.ID)
 
 	switch interaction.Data.Data.Type {
@@ -36,6 +39,11 @@ func WarnHandler(interaction api.Interaction) {
 		modalCustomId += interaction.Data.Data.Options[0].Value.(string)
 	case discord.APPLICATION_COMMAND_TYPE_USER:
 		modalCustomId += interaction.Data.Data.TargetID
+	case discord.APPLICATION_COMMAND_TYPE_MESSAGE:
+		message := interaction.Data.Data.Resolved.Messages[interaction.Data.Data.TargetID]
+		modalCustomId += message.Author.ID + "-" + message.ChannelID + "-" + message.ID
+		textInputLabel = "Additional info"
+		isTextInputRequired = false
 	}
 
 	modal := message_components.ModalWithHandler{
@@ -49,9 +57,10 @@ func WarnHandler(interaction api.Interaction) {
 						{
 							CustomID:  modalCustomId + "-0",
 							Type:      discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
-							Label:     "Reason for the warning",
+							Label:     textInputLabel,
 							Style:     discord.TEXT_INPUT_STYLE_PARAGRAPH,
 							MaxLength: 1500,
+							Required:  isTextInputRequired,
 						},
 					},
 				},
@@ -65,6 +74,8 @@ func WarnHandler(interaction api.Interaction) {
 }
 
 func WarnModelHandler(interaction api.Interaction) {
+	splittedCustomID := strings.Split(interaction.Data.Data.CustomID, "-")
+
 	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
 
 	queries := database.New(database.Connection)
@@ -111,28 +122,29 @@ func WarnModelHandler(interaction api.Interaction) {
 		guild = api.GetGuildById(interaction.Data.GuildID)
 	}
 
+	warningEmbedDescription := fmt.Sprintf("You were warned in the server **%s** ", guild.Name)
+	if interaction.Data.Data.Components[0].Components[0].Value != "" {
+		warningEmbedDescription += fmt.Sprintf("with the following reason: **%s**.", interaction.Data.Data.Components[0].Components[0].Value)
+	} else {
+		warningEmbedDescription += "but no reason was given."
+	}
+
+	if len(splittedCustomID) == 5 {
+		warningEmbedDescription += fmt.Sprintf("**[This message](%s)** was attached to the warning.", fmt.Sprintf("https://discord.com/channels/%s/%s/%s", interaction.Data.GuildID, splittedCustomID[3], splittedCustomID[4]))
+	}
+
+	warningEmbed := discord.Embed{
+		Description: warningEmbedDescription,
+		Color:       discord.EMBED_COLOR_YELLOW,
+		Image: &discord.EmbedImage{
+			URL:    cdn.GetGuildIconURL(guild.ID, guild.Icon),
+			Height: 100,
+			Width:  100,
+		},
+	}
+
 	api.SendMessage(discord.Message{
 		ChannelID: dmChannel.ID,
-		Embeds: []discord.Embed{
-			{
-				Title: "You received an warning!",
-				Color: discord.EMBED_COLOR_YELLOW,
-				Image: &discord.EmbedImage{
-					URL:    cdn.GetGuildIconURL(guild.ID, guild.Icon),
-					Height: 100,
-					Width:  100,
-				},
-				Fields: []discord.EmbedField{
-					{
-						Name:  "Server name",
-						Value: guild.Name,
-					},
-					{
-						Name:  "Reason",
-						Value: interaction.Data.Data.Components[0].Components[0].Value,
-					},
-				},
-			},
-		},
+		Embeds:    []discord.Embed{warningEmbed},
 	})
 }
