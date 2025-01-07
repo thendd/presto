@@ -115,13 +115,15 @@ func WarnModelHandler(interaction api.Interaction) {
 
 		api.SendMessage(discord.Message{
 			ChannelID: dmChannel.ID,
-			Embeds:    []discord.Embed{discord.EmbedColor
+			Embeds: []discord.Embed{
 				{
 					Description: fmt.Sprintf("You were banned from %s because you have received too many warnings.", guild.Name),
-					Color: discord.EMBED_COLOR_RED,
-				}
+					Color:       discord.EMBED_COLOR_RED,
+				},
 			},
 		})
+
+		return
 	}
 
 	interaction.RespondWithMessage(discord.Message{
