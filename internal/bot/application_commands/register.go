@@ -49,8 +49,6 @@ func (group *SlashCommandGroup) ToApplicationCommand() ApplicationCommandWithHan
 	}
 }
 
-var SlashCommands = []ApplicationCommandWithHandlers{}
-
 func NewSlashCommand(name, description string, options []discord.ApplicationCommandOption, handlers ...func(api.Interaction)) ApplicationCommandWithHandlers {
 	return ApplicationCommandWithHandlers{
 		Handlers: handlers,
