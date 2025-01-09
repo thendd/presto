@@ -1,7 +1,6 @@
 package events
 
 import (
-	"log"
 	"slices"
 	"strings"
 
@@ -38,9 +37,7 @@ func HandleApplicationCommands(interaction api.Interaction) {
 	if index != -1 {
 		applicationCommand := application_commands.RegisteredCommands[index]
 
-		log.Println(applicationCommand)
-
-		if len(applicationCommand.Handlers) == 0 {
+		if len(applicationCommand.Handlers) == 1 {
 			applicationCommand.Handlers[0](interaction)
 		} else {
 			splittedInteractionName := strings.Split(interactionName, " ")

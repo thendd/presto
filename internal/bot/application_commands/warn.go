@@ -3,7 +3,6 @@ package application_commands
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -71,7 +70,6 @@ func WarnHandler(interaction api.Interaction) {
 	}
 
 	modals.Append(modal)
-	log.Println(modals.Get())
 	interaction.RespondWithModal(modal.Data)
 }
 
