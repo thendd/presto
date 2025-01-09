@@ -4,7 +4,6 @@ import (
 	"slices"
 	"strings"
 
-	"presto/internal/bot"
 	"presto/internal/bot/application_commands"
 	"presto/internal/bot/message_components"
 	"presto/internal/discord"
@@ -30,12 +29,12 @@ func ReceiveInteractionCreate(interactionData discord.InteractionCreatePayload) 
 
 func HandleApplicationCommands(interaction api.Interaction) {
 	interactionName := discord.GetInteractionName(interaction.Data.Data)
-	index := slices.IndexFunc(bot.RegisteredCommands, func(e application_commands.ApplicationCommandWithHandlers) bool {
+	index := slices.IndexFunc(application_commands.RegisteredCommands, func(e application_commands.ApplicationCommandWithHandlers) bool {
 		return discord.GetApplicationCommandName(e.Data) == interactionName
 	})
 
 	if index != -1 {
-		applicationCommand := bot.RegisteredCommands[index]
+		applicationCommand := application_commands.RegisteredCommands[index]
 
 		if len(applicationCommand.Handlers) == 0 {
 			applicationCommand.Handlers[0](interaction)

@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"presto/internal/bot"
+	"presto/internal/bot/application_commands"
 	"presto/internal/config"
 	"presto/internal/database"
 	"presto/internal/discord"
@@ -31,7 +31,7 @@ func main() {
 	incomingEvents := make(chan ws.EventPayload)
 
 	events.SendIdentify()
-	bot.RegisterCommands()
+	application_commands.Register()
 	go ws.OnEventReceive(incomingEvents)
 
 	for {
