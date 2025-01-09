@@ -1,6 +1,21 @@
 -- name: CreateGuild :one
 INSERT INTO guilds (id) VALUES ($1) RETURNING *;
 
+-- name: UpdateMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET max_warnings_per_user = $1 WHERE id = $2;
+
+-- name: UpdateOnReachMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET on_reach_max_warnings_per_user = $1 WHERE id = $2;
+
+-- name: UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET seconds_to_delete_messages_for_on_reach_max_warnings_per_user = $1 WHERE id = $2;
+
+-- name: UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET role_to_give_on_reach_max_warnings_per_user = $1 WHERE id = $2;
+
+-- name: UpdateSecondsUserShouldKeepRoleForFromGuild :exec
+UPDATE guilds SET seconds_warned_user_should_keep_role_for = $1 WHERE id = $2;
+
 -- name: GetGuild :one
 SELECT
     *

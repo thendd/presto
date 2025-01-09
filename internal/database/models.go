@@ -9,8 +9,12 @@ import (
 )
 
 type Guild struct {
-	ID                 string
-	MaxWarningsPerUser pgtype.Int4
+	ID                                                  string
+	MaxWarningsPerUser                                  pgtype.Int4
+	OnReachMaxWarningsPerUser                           pgtype.Int4
+	SecondsToDeleteMessagesForOnReachMaxWarningsPerUser pgtype.Int4
+	RoleToGiveOnReachMaxWarningsPerUser                 pgtype.Text
+	SecondsWarnedUserShouldKeepRoleFor                  pgtype.Int4
 }
 
 type GuildMember struct {

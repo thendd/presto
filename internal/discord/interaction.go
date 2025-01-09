@@ -1,5 +1,7 @@
 package discord
 
+import "strings"
+
 type (
 	InteractionType         int
 	InteractionCallbackType int
@@ -32,6 +34,7 @@ type InteractionCreatePayloadData struct {
 	ComponentType int                                  `json:"component_type,omitempty"`
 	TargetID      string                               `json:"target_id,omitempty"`
 	Components    []MessageComponent                   `json:"components,omitempty"`
+	Values        []string                             `json:"values,omitempty"`
 }
 
 type InteractionCreatePayloadDataOption struct {
@@ -47,4 +50,28 @@ type ResolvedData struct {
 	Roles    map[string]Role        `json:"roles,omitempty"`
 	Channels map[string]Channel     `json:"channels,omitempty"`
 	Messages map[string]Message     `json:"messages,omitempty"`
+}
+
+// Joins the name of the interaction options if they are sub commands or sub command groups.
+// This is used for comparision purposes with names of application commands
+func JoinInteractionOptionsNames(options []InteractionCreatePayloadDataOption) string {
+	var names []string
+
+	var appendNames func([]InteractionCreatePayloadDataOption)
+	appendNames = func(opts []InteractionCreatePayloadDataOption) {
+		for _, option := range opts {
+			if option.Type == int(APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND) || option.Type == int(APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP) {
+				names = append(names, option.Name)
+				appendNames(option.Options)
+			}
+		}
+	}
+
+	appendNames(options)
+	return strings.Join(names, " ")
+}
+
+// Gets the "whole name" of an interaction, joining its base name, sub command names and sub command group names
+func GetInteractionName(interaction InteractionCreatePayloadData) string {
+	return interaction.Name + " " + JoinInteractionOptionsNames(interaction.Options)
 }

@@ -12,13 +12,20 @@ import (
 )
 
 const createGuild = `-- name: CreateGuild :one
-INSERT INTO guilds (id) VALUES ($1) RETURNING id, max_warnings_per_user
+INSERT INTO guilds (id) VALUES ($1) RETURNING id, max_warnings_per_user, on_reach_max_warnings_per_user, seconds_to_delete_messages_for_on_reach_max_warnings_per_user, role_to_give_on_reach_max_warnings_per_user, seconds_warned_user_should_keep_role_for
 `
 
 func (q *Queries) CreateGuild(ctx context.Context, id string) (Guild, error) {
 	row := q.db.QueryRow(ctx, createGuild, id)
 	var i Guild
-	err := row.Scan(&i.ID, &i.MaxWarningsPerUser)
+	err := row.Scan(
+		&i.ID,
+		&i.MaxWarningsPerUser,
+		&i.OnReachMaxWarningsPerUser,
+		&i.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser,
+		&i.RoleToGiveOnReachMaxWarningsPerUser,
+		&i.SecondsWarnedUserShouldKeepRoleFor,
+	)
 	return i, err
 }
 
@@ -40,7 +47,7 @@ func (q *Queries) CreateGuildMember(ctx context.Context, arg CreateGuildMemberPa
 
 const getGuild = `-- name: GetGuild :one
 SELECT
-    id, max_warnings_per_user
+    id, max_warnings_per_user, on_reach_max_warnings_per_user, seconds_to_delete_messages_for_on_reach_max_warnings_per_user, role_to_give_on_reach_max_warnings_per_user, seconds_warned_user_should_keep_role_for
 FROM
     guilds
 WHERE
@@ -51,7 +58,14 @@ LIMIT 1
 func (q *Queries) GetGuild(ctx context.Context, id string) (Guild, error) {
 	row := q.db.QueryRow(ctx, getGuild, id)
 	var i Guild
-	err := row.Scan(&i.ID, &i.MaxWarningsPerUser)
+	err := row.Scan(
+		&i.ID,
+		&i.MaxWarningsPerUser,
+		&i.OnReachMaxWarningsPerUser,
+		&i.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser,
+		&i.RoleToGiveOnReachMaxWarningsPerUser,
+		&i.SecondsWarnedUserShouldKeepRoleFor,
+	)
 	return i, err
 }
 
@@ -83,5 +97,75 @@ type UpdateGuildMemberWarningsParams struct {
 
 func (q *Queries) UpdateGuildMemberWarnings(ctx context.Context, arg UpdateGuildMemberWarningsParams) error {
 	_, err := q.db.Exec(ctx, updateGuildMemberWarnings, arg.Warnings, arg.GuildID, arg.UserID)
+	return err
+}
+
+const updateMaxWarningsPerUserFromGuild = `-- name: UpdateMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET max_warnings_per_user = $1 WHERE id = $2
+`
+
+type UpdateMaxWarningsPerUserFromGuildParams struct {
+	MaxWarningsPerUser pgtype.Int4
+	ID                 string
+}
+
+func (q *Queries) UpdateMaxWarningsPerUserFromGuild(ctx context.Context, arg UpdateMaxWarningsPerUserFromGuildParams) error {
+	_, err := q.db.Exec(ctx, updateMaxWarningsPerUserFromGuild, arg.MaxWarningsPerUser, arg.ID)
+	return err
+}
+
+const updateOnReachMaxWarningsPerUserFromGuild = `-- name: UpdateOnReachMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET on_reach_max_warnings_per_user = $1 WHERE id = $2
+`
+
+type UpdateOnReachMaxWarningsPerUserFromGuildParams struct {
+	OnReachMaxWarningsPerUser pgtype.Int4
+	ID                        string
+}
+
+func (q *Queries) UpdateOnReachMaxWarningsPerUserFromGuild(ctx context.Context, arg UpdateOnReachMaxWarningsPerUserFromGuildParams) error {
+	_, err := q.db.Exec(ctx, updateOnReachMaxWarningsPerUserFromGuild, arg.OnReachMaxWarningsPerUser, arg.ID)
+	return err
+}
+
+const updateRoletoGiveOnReachMaxWarningsPerUserFromGuild = `-- name: UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET role_to_give_on_reach_max_warnings_per_user = $1 WHERE id = $2
+`
+
+type UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuildParams struct {
+	RoleToGiveOnReachMaxWarningsPerUser pgtype.Text
+	ID                                  string
+}
+
+func (q *Queries) UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuild(ctx context.Context, arg UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuildParams) error {
+	_, err := q.db.Exec(ctx, updateRoletoGiveOnReachMaxWarningsPerUserFromGuild, arg.RoleToGiveOnReachMaxWarningsPerUser, arg.ID)
+	return err
+}
+
+const updateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuild = `-- name: UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuild :exec
+UPDATE guilds SET seconds_to_delete_messages_for_on_reach_max_warnings_per_user = $1 WHERE id = $2
+`
+
+type UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuildParams struct {
+	SecondsToDeleteMessagesForOnReachMaxWarningsPerUser pgtype.Int4
+	ID                                                  string
+}
+
+func (q *Queries) UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuild(ctx context.Context, arg UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuildParams) error {
+	_, err := q.db.Exec(ctx, updateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuild, arg.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser, arg.ID)
+	return err
+}
+
+const updateSecondsUserShouldKeepRoleForFromGuild = `-- name: UpdateSecondsUserShouldKeepRoleForFromGuild :exec
+UPDATE guilds SET seconds_warned_user_should_keep_role_for = $1 WHERE id = $2
+`
+
+type UpdateSecondsUserShouldKeepRoleForFromGuildParams struct {
+	SecondsWarnedUserShouldKeepRoleFor pgtype.Int4
+	ID                                 string
+}
+
+func (q *Queries) UpdateSecondsUserShouldKeepRoleForFromGuild(ctx context.Context, arg UpdateSecondsUserShouldKeepRoleForFromGuildParams) error {
+	_, err := q.db.Exec(ctx, updateSecondsUserShouldKeepRoleForFromGuild, arg.SecondsWarnedUserShouldKeepRoleFor, arg.ID)
 	return err
 }

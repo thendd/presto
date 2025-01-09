@@ -5,8 +5,8 @@ const (
 	MESSAGE_COMPONENT_TYPE_BUTTON             MessageComponentType = 2
 	MESSAGE_COMPONENT_TYPE_SELECT_MENU        MessageComponentType = 3
 	MESSAGE_COMPONENT_TYPE_TEXT_INPUT         MessageComponentType = 4
-	MESSAGE_COMPONENT_TYPE_ROLE_SELECT        MessageComponentType = 5
-	MESSAGE_COMPONENT_TYPE_USER_SELECT        MessageComponentType = 6
+	MESSAGE_COMPONENT_TYPE_USER_SELECT        MessageComponentType = 5
+	MESSAGE_COMPONENT_TYPE_ROLE_SELECT        MessageComponentType = 6
 	MESSAGE_COMPONENT_TYPE_MENTIONABLE_SELECT MessageComponentType = 7
 	MESSAGE_COMPONENT_TYPE_CHANNEL_SELECT     MessageComponentType = 8
 )
@@ -14,6 +14,12 @@ const (
 const (
 	TEXT_INPUT_STYLE_SHORT     MessageComponentStyle = 1
 	TEXT_INPUT_STYLE_PARAGRAPH MessageComponentStyle = 2
+	BUTTON_STYLE_PRIMARY       MessageComponentStyle = 1
+	BUTTON_STYLE_SECONDARY     MessageComponentStyle = 2
+	BUTTON_STYLE_SUCCESS       MessageComponentStyle = 3
+	BUTTON_STYLE_DANGER        MessageComponentStyle = 4
+	BUTTON_STYLE_LINK          MessageComponentStyle = 5
+	BUTTON_STYLE_PREMIUM       MessageComponentStyle = 6
 )
 
 const (
@@ -44,17 +50,18 @@ type (
 )
 
 type Message struct {
-	ID              string      `json:"id,omitempty"`
-	ChannelID       string      `json:"channel_id,omitempty"`
-	Author          *User       `json:"author,omitempty"`
-	Content         string      `json:"content,omitempty"`
-	Timestamp       string      `json:"timestamp,omitempty"`
-	EditedTimestamp string      `json:"edited_timestamp,omitempty"`
-	TTS             bool        `json:"tts,omitempty"`
-	MentionEveryone bool        `json:"mention_everyone,omitempty"`
-	Mentions        []User      `json:"mentions,omitempty"`
-	Embeds          []Embed     `json:"embeds,omitempty"`
-	Flags           MessageFlag `json:"flags,omitempty"`
+	ID              string             `json:"id,omitempty"`
+	ChannelID       string             `json:"channel_id,omitempty"`
+	Author          *User              `json:"author,omitempty"`
+	Content         string             `json:"content,omitempty"`
+	Timestamp       string             `json:"timestamp,omitempty"`
+	EditedTimestamp string             `json:"edited_timestamp,omitempty"`
+	TTS             bool               `json:"tts,omitempty"`
+	MentionEveryone bool               `json:"mention_everyone,omitempty"`
+	Mentions        []User             `json:"mentions,omitempty"`
+	Embeds          []Embed            `json:"embeds,omitempty"`
+	Flags           MessageFlag        `json:"flags,omitempty"`
+	Components      []MessageComponent `json:"components"`
 }
 
 type Embed struct {
@@ -129,7 +136,7 @@ type SelectOption struct {
 	Label       string `json:"label,omitempty"`
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
-	Emoji       Emoji  `json:"emoji,omitempty"`
+	Emoji       *Emoji `json:"emoji,omitempty"`
 	Default     bool   `json:"default,omitempty"`
 }
 

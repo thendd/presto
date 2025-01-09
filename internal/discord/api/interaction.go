@@ -38,20 +38,20 @@ type RespondInteractionRequestBody struct {
 	Data any                             `json:"data"`
 }
 
-func (ctx Interaction) RespondWithMessage(message discord.Message) {
+func (ctx Interaction) RespondWithMessage(message discord.Message) ([]byte, int) {
 	body := RespondInteractionRequestBody{
 		Type: INTERACTION_CALLBACK_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
 		Data: message,
 	}
 
-	MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
+	return MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
 }
 
-func (ctx Interaction) RespondWithModal(modal Modal) {
+func (ctx Interaction) RespondWithModal(modal Modal) ([]byte, int) {
 	body := RespondInteractionRequestBody{
 		Type: INTERACTION_CALLBACK_TYPE_MODAL,
 		Data: modal,
 	}
 
-	MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
+	return MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
 }

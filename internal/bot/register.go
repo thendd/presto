@@ -10,11 +10,12 @@ import (
 	"presto/internal/discord/api"
 )
 
-var RegisteredCommands = []application_commands.ApplicationCommandWithHandler{
+var RegisteredCommands = []application_commands.ApplicationCommandWithHandlers{
 	application_commands.Ping,
 	application_commands.WarnUserCommand,
 	application_commands.WarnSlashCommand,
 	application_commands.WarnMessageCommand,
+	application_commands.Settings,
 }
 
 func RegisterCommands() {
