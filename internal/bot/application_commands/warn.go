@@ -3,10 +3,11 @@ package application_commands
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
-	"presto/internal/bot/message_components"
+	"presto/internal/bot/modals"
 	"presto/internal/database"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
@@ -46,7 +47,7 @@ func WarnHandler(interaction api.Interaction) {
 		isTextInputRequired = false
 	}
 
-	modal := message_components.ModalWithHandler{
+	modal := modals.WithHandler{
 		Data: api.Modal{
 			CustomID: modalCustomId,
 			Title:    "Warning details",
@@ -69,7 +70,8 @@ func WarnHandler(interaction api.Interaction) {
 		Handler: WarnModelHandler,
 	}
 
-	message_components.Modals = append(message_components.Modals, modal)
+	modals.Append(modal)
+	log.Println(modals.Get())
 	interaction.RespondWithModal(modal.Data)
 }
 

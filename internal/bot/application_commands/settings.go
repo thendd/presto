@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"presto/internal/bot/message_components"
+	"presto/internal/bot/modals"
 	"presto/internal/database"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
@@ -216,7 +217,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			MaxLength:   2,
 		})
 
-		message_components.Modals = append(message_components.Modals, message_components.ModalWithHandler{
+		modals.Append(modals.WithHandler{
 			Data:    modalTemplate,
 			Handler: settingsTabHandler,
 		})
@@ -279,7 +280,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			MaxLength:   5,
 		})
 
-		message_components.Modals = append(message_components.Modals, message_components.ModalWithHandler{
+		modals.Append(modals.WithHandler{
 			Data:    modalTemplate,
 			Handler: settingsTabHandler,
 		})
@@ -321,7 +322,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			MaxLength:   5,
 		})
 
-		message_components.Modals = append(message_components.Modals, message_components.ModalWithHandler{
+		modals.Append(modals.WithHandler{
 			Data:    modalTemplate,
 			Handler: settingsTabHandler,
 		})

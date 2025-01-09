@@ -1,11 +1,13 @@
 package events
 
 import (
+	"log"
 	"slices"
 	"strings"
 
 	"presto/internal/bot/application_commands"
 	"presto/internal/bot/message_components"
+	"presto/internal/bot/modals"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
 	ws "presto/internal/discord/websocket"
@@ -35,6 +37,8 @@ func HandleApplicationCommands(interaction api.Interaction) {
 
 	if index != -1 {
 		applicationCommand := application_commands.RegisteredCommands[index]
+
+		log.Println(applicationCommand)
 
 		if len(applicationCommand.Handlers) == 0 {
 			applicationCommand.Handlers[0](interaction)
@@ -67,13 +71,14 @@ func HandleApplicationCommands(interaction api.Interaction) {
 }
 
 func HandleModalSubmit(interaction api.Interaction) {
-	index := slices.IndexFunc(message_components.Modals, func(e message_components.ModalWithHandler) bool {
+	registeredModals := modals.Get()
+	index := slices.IndexFunc(registeredModals, func(e modals.WithHandler) bool {
 		return e.Data.CustomID == interaction.Data.Data.CustomID
 	})
 
 	if index != -1 {
-		message_components.Modals[index].Handler(interaction)
-		message_components.Modals = append(message_components.Modals[:index], message_components.Modals[index+1:]...)
+		registeredModals[index].Handler(interaction)
+		modals.Remove(index)
 	}
 }
 
