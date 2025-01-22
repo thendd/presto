@@ -106,7 +106,7 @@ func Register() {
 	var mustDelete []discord.ApplicationCommand
 	var mustCreate []discord.ApplicationCommand
 
-	switch os.Getenv("ENVIRONMENT") {
+	switch os.Getenv("PRESTO_ENVIRONMENT") {
 	case "production":
 		applicationCommands := api.GetGlobalApplicationCommands()
 
@@ -178,7 +178,7 @@ func Register() {
 			log.Printf("\"%s\" command was created/updated successfully in the testing guild\n", applicationCommand.Name)
 		}
 	default:
-		log.Fatalf("Unknown \"ENVIRONMENT\" value: %v", os.Getenv("ENVIRONMENT"))
+		log.Fatalf("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
 	}
 
 	log.Println("Finished registering commands successfully")

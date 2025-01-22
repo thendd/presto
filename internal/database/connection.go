@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 
-	"presto/internal/database/config"
-
 	"github.com/jackc/pgx/v5"
 )
 
@@ -14,11 +12,7 @@ var Connection *pgx.Conn
 
 func Connect() {
 	log.Println("Started connecting to the database")
-	connectionString := config.POSTGRESQL_CONNECTION_STRING
-
-	if os.Getenv("ENVIRONMENT") == "development" {
-		connectionString = config.DEVELOPMENT_POSTGRESQL_CONNECTION_STRING
-	}
+	connectionString := "postgres://" + os.Getenv("POSTGRES_USER") + ":" + os.Getenv("POSTGRES_PASSWORD") + "@" + os.Getenv("POSTGRES_HOST") + ":" + os.Getenv("POSTGRES_PORT") + "/" + os.Getenv("POSTGRES_DB")
 
 	conn, err := pgx.Connect(context.Background(), connectionString)
 	if err != nil {
