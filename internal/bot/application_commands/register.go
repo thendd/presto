@@ -103,8 +103,8 @@ var RegisteredCommands = []ApplicationCommandWithHandlers{
 func Register() {
 	log.Println("Started registering application commands")
 
-	var mustDelete []discord.ApplicationCommand
-	var mustCreate []discord.ApplicationCommand
+	mustDelete := []discord.ApplicationCommand{}
+	mustCreate := []discord.ApplicationCommand{}
 
 	switch os.Getenv("PRESTO_ENVIRONMENT") {
 	case "production":
@@ -112,21 +112,15 @@ func Register() {
 
 		for _, registeredCommand := range RegisteredCommands {
 			possibleExistingApplicationCommandIndex := slices.IndexFunc(applicationCommands, func(e discord.ApplicationCommand) bool {
-				return e.Name == registeredCommand.Data.Name
+				return discord.GetApplicationCommandName(registeredCommand.Data) == discord.GetApplicationCommandName(e)
 			})
 
-			if possibleExistingApplicationCommandIndex != -1 {
-				areRegisteredCommandAndApplicationCommandEqual := discord.CompareApplicationCommands(registeredCommand.Data, applicationCommands[possibleExistingApplicationCommandIndex])
-
-				if !areRegisteredCommandAndApplicationCommandEqual {
-					// Created application commands with names that are already assigned to some application command are overwritten
-					mustCreate = append(mustCreate, registeredCommand.Data)
-				}
-
-				applicationCommands = append(applicationCommands[:possibleExistingApplicationCommandIndex], applicationCommands[possibleExistingApplicationCommandIndex+1:]...)
-			} else {
+			if possibleExistingApplicationCommandIndex == -1 || !discord.CompareApplicationCommands(registeredCommand.Data, applicationCommands[possibleExistingApplicationCommandIndex]) {
 				mustCreate = append(mustCreate, registeredCommand.Data)
+				return
 			}
+
+			applicationCommands = append(applicationCommands[:possibleExistingApplicationCommandIndex], applicationCommands[possibleExistingApplicationCommandIndex+1:]...)
 		}
 
 		// If an application command exists and does not correspond with the name of any of the registered commands,
@@ -147,21 +141,15 @@ func Register() {
 
 		for _, registeredCommand := range RegisteredCommands {
 			possibleExistingApplicationCommandIndex := slices.IndexFunc(applicationCommands, func(e discord.ApplicationCommand) bool {
-				return e.Name == registeredCommand.Data.Name
+				return discord.GetApplicationCommandName(registeredCommand.Data) == discord.GetApplicationCommandName(e)
 			})
 
-			if possibleExistingApplicationCommandIndex != -1 {
-				areRegisteredCommandAndApplicationCommandEqual := discord.CompareApplicationCommands(registeredCommand.Data, applicationCommands[possibleExistingApplicationCommandIndex])
-
-				if !areRegisteredCommandAndApplicationCommandEqual {
-					// Created application commands with names that are already assigned to some application command are overwritten
-					mustCreate = append(mustCreate, registeredCommand.Data)
-				}
-
-				applicationCommands = append(applicationCommands[:possibleExistingApplicationCommandIndex], applicationCommands[possibleExistingApplicationCommandIndex+1:]...)
-			} else {
+			if possibleExistingApplicationCommandIndex == -1 || !discord.CompareApplicationCommands(registeredCommand.Data, applicationCommands[possibleExistingApplicationCommandIndex]) {
 				mustCreate = append(mustCreate, registeredCommand.Data)
+				return
 			}
+
+			applicationCommands = append(applicationCommands[:possibleExistingApplicationCommandIndex], applicationCommands[possibleExistingApplicationCommandIndex+1:]...)
 		}
 
 		// If an application command exists and does not correspond with the name of any of the registered commands,
