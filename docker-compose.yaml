@@ -4,7 +4,7 @@ services:
     container_name: bot
     tty: true
     env_file:
-      - .env
+      - .env.docker
     environment:
       - PRESTO_ENVIRONMENT=development
       - BASE_DISCORD_CDN_URL=https://cdn.discordapp.com
