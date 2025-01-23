@@ -8,19 +8,19 @@
 
 Presto is a wrapperless Discord bot made in Go that aims to be efficient yet multipurpose.
 
-# Summary
+## Summary
 
 - [📦 Installation](#-installation)
     - [🔧 Prerequisites](#-prerequisites)
     - [🚀 Getting Started](#-getting-started)
 
-# 📦 Installation
+## 📦 Installation
 
-## 🔧 Prerequisites
+### 🔧 Prerequisites
 - [Docker](https://www.docker.com/)
 - [Docker Compose](https://docs.docker.com/compose/)
 
-## 🚀 Getting Started
+### 🚀 Getting Started
 
 1. Clone the repository and navigate to the project directory:
 ```bash
