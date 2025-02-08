@@ -11,7 +11,7 @@ import (
 
 type ApplicationCommandWithHandlers struct {
 	Data     discord.ApplicationCommand
-	Handlers []func(api.Interaction)
+	Handlers []func(api.Interaction) error
 }
 
 type SlashCommandGroup ApplicationCommandWithHandlers
@@ -26,7 +26,7 @@ func (group *SlashCommandGroup) AddSubCommandGroup(name, description string) *Sl
 	return group
 }
 
-func (group *SlashCommandGroup) AddSubCommand(subCommandGroup, name, description string, options []discord.ApplicationCommandOption, handler func(api.Interaction)) *SlashCommandGroup {
+func (group *SlashCommandGroup) AddSubCommand(subCommandGroup, name, description string, options []discord.ApplicationCommandOption, handler func(api.Interaction) error) *SlashCommandGroup {
 	index := slices.IndexFunc(group.Data.Options, func(e discord.ApplicationCommandOption) bool {
 		return e.Name == subCommandGroup && e.Type == discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP
 	})
@@ -51,7 +51,7 @@ func (group *SlashCommandGroup) ToApplicationCommand() ApplicationCommandWithHan
 	}
 }
 
-func NewSlashCommand(name, description string, options []discord.ApplicationCommandOption, handlers ...func(api.Interaction)) ApplicationCommandWithHandlers {
+func NewSlashCommand(name, description string, options []discord.ApplicationCommandOption, handlers ...func(api.Interaction) error) ApplicationCommandWithHandlers {
 	return ApplicationCommandWithHandlers{
 		Handlers: handlers,
 		Data: discord.ApplicationCommand{
@@ -72,7 +72,7 @@ func NewSlashCommandGroup(name, description string) *SlashCommandGroup {
 	}
 }
 
-func NewUserCommand(name string, handlers ...func(api.Interaction)) ApplicationCommandWithHandlers {
+func NewUserCommand(name string, handlers ...func(api.Interaction) error) ApplicationCommandWithHandlers {
 	return ApplicationCommandWithHandlers{
 		Handlers: handlers,
 		Data: discord.ApplicationCommand{
@@ -82,7 +82,7 @@ func NewUserCommand(name string, handlers ...func(api.Interaction)) ApplicationC
 	}
 }
 
-func NewMessageCommand(name string, handlers ...func(api.Interaction)) ApplicationCommandWithHandlers {
+func NewMessageCommand(name string, handlers ...func(api.Interaction) error) ApplicationCommandWithHandlers {
 	return ApplicationCommandWithHandlers{
 		Handlers: handlers,
 		Data: discord.ApplicationCommand{

@@ -3,6 +3,7 @@ package application_commands
 import (
 	"fmt"
 	"log"
+	"presto/internal/bot/errors"
 	"strings"
 	"time"
 
@@ -27,7 +28,7 @@ var (
 	WarnMessageCommand = NewMessageCommand("Warn", WarnHandler)
 )
 
-func WarnHandler(interaction api.Interaction) {
+func WarnHandler(interaction api.Interaction) error {
 	textInputLabel := "Reason"
 	isTextInputRequired := true
 	modalCustomId := fmt.Sprintf("%d-%s-", time.Now().UnixMilli(), interaction.Data.Member.User.ID)
@@ -69,9 +70,11 @@ func WarnHandler(interaction api.Interaction) {
 
 	modals.Append(modal)
 	interaction.RespondWithModal(modal.Data)
+
+	return nil
 }
 
-func WarnModelHandler(interaction api.Interaction) {
+func WarnModelHandler(interaction api.Interaction) error {
 	splittedCustomID := strings.Split(interaction.Data.Data.CustomID, "-")
 
 	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
@@ -80,36 +83,18 @@ func WarnModelHandler(interaction api.Interaction) {
 		ID: interaction.Data.GuildID,
 	}
 
-	result := database.Connection.First(&guildData)
-	if result.Error != nil {
+	if result := database.Connection.First(&guildData); result.Error != nil {
 		log.Printf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
-		interaction.RespondWithMessage(discord.Message{
-			Embeds: []discord.Embed{
-				{
-					Description: "This command did not work due to an unknown error.",
-				},
-			},
-			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
-		})
-		return
+		return errors.UnknwonError
 	}
 
 	target := database.GuildMember{
 		GuildId: interaction.Data.GuildID,
 		UserId:  targetId,
 	}
-	result = database.Connection.FirstOrCreate(&target)
-	if result.Error != nil {
+	if result := database.Connection.FirstOrCreate(&target); result.Error != nil {
 		log.Printf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
-		interaction.RespondWithMessage(discord.Message{
-			Embeds: []discord.Embed{
-				{
-					Description: "This command did not work due to an unknown error.",
-				},
-			},
-			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
-		})
-		return
+		return errors.UnknwonError
 	}
 
 	remainingWarnings := guildData.MaxWarningsPerUser - target.Warnings - 1
@@ -147,7 +132,7 @@ func WarnModelHandler(interaction api.Interaction) {
 			},
 		})
 
-		return
+		return nil
 	}
 
 	interaction.RespondWithMessage(discord.Message{
@@ -191,4 +176,6 @@ func WarnModelHandler(interaction api.Interaction) {
 		ChannelID: dmChannel.ID,
 		Embeds:    []discord.Embed{warningEmbed},
 	})
+
+	return nil
 }

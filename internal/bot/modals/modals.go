@@ -6,7 +6,7 @@ import (
 
 type WithHandler struct {
 	Data    api.Modal
-	Handler func(api.Interaction)
+	Handler func(api.Interaction) error
 }
 
 var modals = []WithHandler{}

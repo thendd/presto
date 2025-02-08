@@ -35,10 +35,11 @@ func HandleApplicationCommands(interaction api.Interaction) {
 	})
 
 	if index != -1 {
+		var err error
 		applicationCommand := application_commands.RegisteredCommands[index]
 
 		if len(applicationCommand.Handlers) == 1 {
-			applicationCommand.Handlers[0](interaction)
+			err = applicationCommand.Handlers[0](interaction)
 		} else {
 			splittedInteractionName := strings.Split(interactionName, " ")
 			applicationCommandToFind := splittedInteractionName[len(splittedInteractionName)-1]
@@ -60,9 +61,20 @@ func HandleApplicationCommands(interaction api.Interaction) {
 
 			for index, subCommand := range subCommands {
 				if subCommand.Name == applicationCommandToFind {
-					applicationCommand.Handlers[index](interaction)
+					err = applicationCommand.Handlers[index](interaction)
 				}
 			}
+		}
+
+		if err != nil {
+			interaction.RespondWithMessage(discord.Message{
+				Embeds: []discord.Embed{
+					{
+						Description: err.Error(),
+					},
+				},
+				Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+			})
 		}
 	}
 }
@@ -74,8 +86,19 @@ func HandleModalSubmit(interaction api.Interaction) {
 	})
 
 	if index != -1 {
-		registeredModals[index].Handler(interaction)
+		err := registeredModals[index].Handler(interaction)
 		modals.Remove(index)
+
+		if err != nil {
+			interaction.RespondWithMessage(discord.Message{
+				Embeds: []discord.Embed{
+					{
+						Description: err.Error(),
+					},
+				},
+				Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+			})
+		}
 	}
 }
 
@@ -85,7 +108,18 @@ func HandleMessageComponentInteraction(interaction api.Interaction) {
 	})
 
 	if index != -1 {
-		message_components.SelectMenus[index].Handler(interaction)
+		err := message_components.SelectMenus[index].Handler(interaction)
+		if err != nil {
+			interaction.RespondWithMessage(discord.Message{
+				Embeds: []discord.Embed{
+					{
+						Description: err.Error(),
+					},
+				},
+				Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+			})
+			return
+		}
 
 		if message_components.SelectMenus[index].DeleteAfterInteracted {
 			message_components.SelectMenus = append(message_components.SelectMenus[:index], message_components.SelectMenus[index+1:]...)

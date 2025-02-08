@@ -3,6 +3,7 @@ package application_commands
 import (
 	"fmt"
 	"log"
+	"presto/internal/bot/errors"
 	"presto/internal/bot/message_components"
 	"presto/internal/bot/modals"
 	"presto/internal/database"
@@ -17,7 +18,7 @@ var Settings = NewSlashCommandGroup("settings", "Anything you want to customize"
 	AddSubCommand("server", "warnings", "What should I do when a user is warned?", []discord.ApplicationCommandOption{}, ServerWarningSettingsHandler).
 	ToApplicationCommand()
 
-func ServerWarningSettingsHandler(interaction api.Interaction) {
+func ServerWarningSettingsHandler(interaction api.Interaction) error {
 	selectMenu := discord.MessageComponent{
 		Type:        discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
 		CustomID:    strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.Member.User.ID,
@@ -66,41 +67,30 @@ func ServerWarningSettingsHandler(interaction api.Interaction) {
 			},
 		},
 	})
+
+	return nil
 }
 
-func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
-	errorMessage := discord.Message{
-		Embeds: []discord.Embed{
-			{
-				Color: discord.EMBED_COLOR_RED,
-			},
-		},
-		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
-	}
-
+func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 	guild := database.Guild{
 		ID: interaction.Data.GuildID,
 	}
 	result := database.Connection.First(guild)
 	if result.Error != nil {
 		log.Printf("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
-		errorMessage.Embeds[0].Description = "There was an unexpected error while executing this command."
-		interaction.RespondWithMessage(errorMessage)
-		return
+		return errors.UnknwonError
 	}
 
 	currentOnReachMaxWarningsPerUser := guild.OnReachMaxWarningsPerUser
 
 	settingsTab, _ := strconv.Atoi(interaction.Data.Data.Values[0])
 
+	template := "This tab is only accessible if the punishment for a user that gets too many warnings is **%s**"
+
 	if settingsTab == 2 && currentOnReachMaxWarningsPerUser != int8(database.ON_REACH_MAX_WARNINGS_PER_USER_BAN) {
-		errorMessage.Embeds[0].Description = "This tab is only accessible if the punishment for a user that gets too many warnings is **Ban**"
-		interaction.RespondWithMessage(errorMessage)
-		return
+		return errors.New(fmt.Sprintf(template, "Ban user"))
 	} else if (settingsTab == 3 || settingsTab == 4) && currentOnReachMaxWarningsPerUser != int8(database.ON_REACH_MAX_WARNINGS_PER_USER_GIVE_ROLE) {
-		errorMessage.Embeds[0].Description = "This tab is only accessible if the punishment for a user that gets too many warnings is **Give role**"
-		interaction.RespondWithMessage(errorMessage)
-		return
+		return errors.New(fmt.Sprintf(template, "Give role"))
 	}
 
 	modalTemplate := api.Modal{
@@ -112,8 +102,8 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 		},
 	}
 
-	var settingsTabHandler func(interaction api.Interaction)
-	settingsTabHandler = func(interaction api.Interaction) {
+	var settingsTabHandler func(interaction api.Interaction) error
+	settingsTabHandler = func(interaction api.Interaction) error {
 		successResponse := discord.Message{
 			Embeds: []discord.Embed{
 				{
@@ -133,9 +123,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			newMaxWarningsPerUser, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
 
 			if err != nil || newMaxWarningsPerUser < 0 {
-				errorMessage.Embeds[0].Description = "Your answer must be a positive, whole number or zero"
-				interaction.RespondWithMessage(errorMessage)
-				return
+				return errors.New("Your answer must be a positive, whole number or zero")
 			}
 
 			guildToUpdate.MaxWarningsPerUser = int8(newMaxWarningsPerUser)
@@ -151,9 +139,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			newMinutesToDeleteUserMessagesFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
 
 			if err != nil || newMinutesToDeleteUserMessagesFor < 1 || newMinutesToDeleteUserMessagesFor > 10080 {
-				errorMessage.Embeds[0].Description = "Your answer must be a positive, whole number greater than 0 and lower than 10080"
-				interaction.RespondWithMessage(errorMessage)
-				return
+				return errors.New("Your answer must be a positive, whole number greater than 0 and lower than 10080")
 			}
 
 			guildToUpdate.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser = newMinutesToDeleteUserMessagesFor * 60
@@ -167,10 +153,8 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "role to give when the user is warned too many times")
 		case 4:
 			newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
-
 			if err != nil || newMinutesUserShouldKeepRoleFor < 0 {
-				interaction.RespondWithMessage(errorMessage)
-				return
+				return errors.New("Your answer must be a positive, whole number")
 			}
 
 			guildToUpdate.SecondsPunishedUserShouldKeepRoleFor = newMinutesUserShouldKeepRoleFor * 60
@@ -178,15 +162,13 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "quantity of minutes the user should keep the role for when they get too many warnings")
 		}
 
-		result := database.Connection.Save(guildToUpdate)
-		if result.Error != nil {
-			log.Printf("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when updating the server settings: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
-			errorMessage.Embeds[0].Description = "There was an unexpected error while executing this command."
-			interaction.RespondWithMessage(errorMessage)
-			return
+		if result := database.Connection.Save(guildToUpdate); result.Error != nil {
+			return errors.UnknwonError
 		}
 
 		interaction.RespondWithMessage(successResponse)
+
+		return nil
 	}
 
 	switch settingsTab {
@@ -316,4 +298,6 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 
 		interaction.RespondWithModal(modalTemplate)
 	}
+
+	return nil
 }

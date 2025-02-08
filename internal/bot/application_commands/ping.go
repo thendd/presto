@@ -11,7 +11,7 @@ import (
 
 var Ping = NewSlashCommand("ping", "Have you ever heard about ping pong?", []discord.ApplicationCommandOption{}, PingHandler)
 
-func PingHandler(interaction api.Interaction) {
+func PingHandler(interaction api.Interaction) error {
 	start := time.Now()
 	interaction.Websocket.Ping(context.Background())
 	latency := time.Since(start).Milliseconds()
@@ -33,4 +33,6 @@ func PingHandler(interaction api.Interaction) {
 			},
 		},
 	})
+
+	return nil
 }
