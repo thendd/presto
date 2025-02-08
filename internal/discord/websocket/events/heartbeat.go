@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
-	"log"
+	"presto/internal/log"
 
 	ws "presto/internal/discord/websocket"
 
@@ -12,7 +12,7 @@ import (
 
 // Sends a heartbeat to Discord's WSS
 func SendHeartbeat(lastSequenceNumber any) {
-	log.Println("Started sending heartbeat")
+	log.Info("Started sending heartbeat")
 	var heartbeat string
 
 	if lastSequenceNumber != nil {
@@ -23,7 +23,8 @@ func SendHeartbeat(lastSequenceNumber any) {
 
 	err := ws.Connection.Write(context.Background(), websocket.MessageText, []byte(heartbeat))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
-	log.Println("Sent heartbeat")
+
+	log.Info("Sent heartbeat")
 }

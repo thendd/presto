@@ -1,8 +1,8 @@
 package application_commands
 
 import (
-	"log"
 	"os"
+	"presto/internal/log"
 	"slices"
 
 	"presto/internal/discord"
@@ -101,7 +101,7 @@ var RegisteredCommands = []ApplicationCommandWithHandlers{
 }
 
 func Register() {
-	log.Println("Started registering application commands")
+	log.Info("Started registering application commands")
 
 	mustDelete := []discord.ApplicationCommand{}
 	mustCreate := []discord.ApplicationCommand{}
@@ -129,12 +129,12 @@ func Register() {
 
 		for _, applicationCommand := range mustDelete {
 			api.DeleteGlobalApplicationCommand(applicationCommand.ID.(string))
-			log.Printf("\"%s\" command was deleted globally and successfully\n", applicationCommand.Name)
+			log.Info("\"%s\" command was deleted globally and successfully\n", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
 			api.CreateGlobalApplicationCommand(applicationCommand)
-			log.Printf("\"%s\" command was created/updated globaly successfully\n", applicationCommand.Name)
+			log.Info("\"%s\" command was created/updated globaly successfully\n", applicationCommand.Name)
 		}
 	case "development":
 		applicationCommands := api.GetTestingGuildApplicationCommands()
@@ -158,16 +158,16 @@ func Register() {
 
 		for _, applicationCommand := range mustDelete {
 			api.DeleteTestingGuildApplicationCommand(applicationCommand.ID.(string))
-			log.Printf("\"%s\" command was deleted successfully in the testing guild\n", applicationCommand.Name)
+			log.Info("\"%s\" command was deleted successfully in the testing guild\n", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
 			api.CreateTestingGuildApplicationCommand(applicationCommand)
-			log.Printf("\"%s\" command was created/updated successfully in the testing guild\n", applicationCommand.Name)
+			log.Info("\"%s\" command was created/updated successfully in the testing guild\n", applicationCommand.Name)
 		}
 	default:
-		log.Fatalf("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
+		log.Fatal("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
 	}
 
-	log.Println("Finished registering commands successfully")
+	log.Info("Finished registering commands successfully")
 }

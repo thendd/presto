@@ -2,8 +2,8 @@ package application_commands
 
 import (
 	"fmt"
-	"log"
 	"presto/internal/bot/errors"
+	"presto/internal/log"
 	"strings"
 	"time"
 
@@ -84,7 +84,7 @@ func WarnModelHandler(interaction api.Interaction) error {
 	}
 
 	if result := database.Connection.First(&guildData); result.Error != nil {
-		log.Printf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 
@@ -93,7 +93,7 @@ func WarnModelHandler(interaction api.Interaction) error {
 		UserId:  targetId,
 	}
 	if result := database.Connection.FirstOrCreate(&target); result.Error != nil {
-		log.Printf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 

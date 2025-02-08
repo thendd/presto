@@ -3,7 +3,7 @@ package ws
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"presto/internal/log"
 )
 
 type EventPayload struct {
@@ -14,11 +14,11 @@ type EventPayload struct {
 }
 
 func OnEventReceive(incomingEvents chan EventPayload) {
-	log.Println("Started listening to WSS' messages")
+	log.Info("Started listening to WSS' messages")
 	for {
 		_, rawEvent, err := Connection.Read(context.Background())
 		if err != nil {
-			log.Println("Error while reading event: ", err)
+			log.Error("Error while reading event: ", err)
 		}
 
 		var event EventPayload

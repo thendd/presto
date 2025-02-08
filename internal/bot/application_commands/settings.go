@@ -2,13 +2,13 @@ package application_commands
 
 import (
 	"fmt"
-	"log"
 	"presto/internal/bot/errors"
 	"presto/internal/bot/message_components"
 	"presto/internal/bot/modals"
 	"presto/internal/database"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
+	"presto/internal/log"
 	"strconv"
 	"time"
 )
@@ -77,7 +77,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 	}
 	result := database.Connection.First(guild)
 	if result.Error != nil {
-		log.Printf("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 

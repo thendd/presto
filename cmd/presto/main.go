@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"presto/internal/log"
 	"time"
 
 	"presto/internal/bot/application_commands"
@@ -46,7 +46,7 @@ func main() {
 
 			switch event.Name {
 			case events.READY:
-				log.Println("Presto is ready to go")
+				log.Info("Presto is ready to go")
 			case events.INTERACTION_CREATE:
 				var interactionData discord.InteractionCreatePayload
 				json.Unmarshal(eventData, &interactionData)
@@ -63,14 +63,14 @@ func main() {
 					ID: guildData.ID,
 				})
 				if result.Error != nil && !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-					log.Printf("Failed to create guild %s: %s", guildData.ID, result.Error)
+					log.Error("Failed to create guild %s: %s", guildData.ID, result.Error)
 					continue
 				} else if result.Error != nil {
-					log.Printf("Guild %s was not created because it already exists in the database", guildData.ID)
+					log.Error("Guild %s was not created because it already exists in the database", guildData.ID)
 					continue
 				}
 
-				log.Printf("Created guild (%s) in database successfully\n", guildData.ID)
+				log.Info("Created guild (%s) in database successfully\n", guildData.ID)
 			}
 		}
 	}

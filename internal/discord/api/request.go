@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
+	"presto/internal/log"
 
 	"presto/internal/discord/config"
 )
@@ -21,7 +21,7 @@ func MakeRequest(endpoint string, method string, body any) ([]byte, int) {
 	if body != nil {
 		err := json.NewEncoder(&buffer).Encode(body)
 		if err != nil {
-			log.Println(err)
+			log.Error(err.Error())
 		}
 	}
 

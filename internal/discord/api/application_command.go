@@ -2,8 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
+	"presto/internal/log"
 
 	"presto/internal/discord"
 	"presto/internal/discord/config"
@@ -31,7 +31,7 @@ func GetGlobalApplicationCommands() (response getApplicationCommandsResponseBody
 	rawResponse, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/commands", http.MethodGet, nil)
 
 	if statusCode != http.StatusOK {
-		log.Fatalf("Could not get global application commands. Expected status code 200 and got %d", statusCode)
+		log.Fatal("Could not get global application commands. Expected status code 200 and got %d", statusCode)
 	}
 
 	json.Unmarshal(rawResponse, &response)
@@ -42,7 +42,7 @@ func GetTestingGuildApplicationCommands() (response getApplicationCommandsRespon
 	rawResponse, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/guilds/"+config.TESTING_GUILD_ID+"/commands", http.MethodGet, nil)
 
 	if statusCode != http.StatusOK {
-		log.Fatalf("Could not get testing guild application commands. Expected status code 200 and got %d", statusCode)
+		log.Fatal("Could not get testing guild application commands. Expected status code 200 and got %d", statusCode)
 	}
 
 	json.Unmarshal(rawResponse, &response)
@@ -54,7 +54,7 @@ func CreateGlobalApplicationCommand(applicationCommand discord.ApplicationComman
 	_, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/commands", http.MethodPost, body)
 
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
-		log.Fatalf("Could not create global application command. Expected status code 200 or 201 and got %d", statusCode)
+		log.Fatal("Could not create global application command. Expected status code 200 or 201 and got %d", statusCode)
 	}
 }
 
@@ -62,7 +62,7 @@ func CreateTestingGuildApplicationCommand(applicationCommand discord.Application
 	_, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/guilds/"+config.TESTING_GUILD_ID+"/commands", http.MethodPost, applicationCommand)
 
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
-		log.Fatalf("Could not create testing guild application commands. Expected status code 200 or 201 and got %d", statusCode)
+		log.Fatal("Could not create testing guild application commands. Expected status code 200 or 201 and got %d", statusCode)
 	}
 }
 
@@ -70,7 +70,7 @@ func DeleteGlobalApplicationCommand(id string) {
 	_, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/commands/"+id, http.MethodDelete, nil)
 
 	if statusCode != http.StatusNoContent {
-		log.Fatalf("Could not delete global application command. Expected status code 204 and got %d", statusCode)
+		log.Fatal("Could not delete global application command. Expected status code 204 and got %d", statusCode)
 	}
 }
 
@@ -78,6 +78,6 @@ func DeleteTestingGuildApplicationCommand(id string) {
 	_, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/guilds/"+config.TESTING_GUILD_ID+"/commands/"+id, http.MethodDelete, nil)
 
 	if statusCode != http.StatusNoContent {
-		log.Fatalf("Could not delete testing guild application command. Expected status code 204 and got %d", statusCode)
+		log.Fatal("Could not delete testing guild application command. Expected status code 204 and got %d", statusCode)
 	}
 }
