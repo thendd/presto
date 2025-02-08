@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -13,12 +13,13 @@ import (
 	"presto/internal/discord/api"
 	ws "presto/internal/discord/websocket"
 	"presto/internal/discord/websocket/events"
+
+	"gorm.io/gorm"
 )
 
 func main() {
 	config.LoadEnvironmentVariables()
 	database.Connect()
-	defer database.Connection.Close(context.Background())
 
 	gatewayData := api.GetGateway()
 	ws.Connnect(gatewayData.URL)
@@ -58,11 +59,18 @@ func main() {
 				var guildData discord.Guild
 				json.Unmarshal(eventData, &guildData)
 
-				queries := database.New(database.Connection)
-				createdGuild, _ := queries.CreateGuild(context.Background(), guildData.ID)
-				if createdGuild.ID != "" {
-					log.Printf("Created guild (%s) in database successfully\n", guildData.ID)
+				result := database.Connection.Create(&database.Guild{
+					ID: guildData.ID,
+				})
+				if result.Error != nil && !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+					log.Printf("Failed to create guild %s: %s", guildData.ID, result.Error)
+					continue
+				} else if result.Error != nil {
+					log.Printf("Guild %s was not created because it already exists in the database", guildData.ID)
+					continue
 				}
+
+				log.Printf("Created guild (%s) in database successfully\n", guildData.ID)
 			}
 		}
 	}

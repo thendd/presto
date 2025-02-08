@@ -1,8 +1,8 @@
 package application_commands
 
 import (
-	"context"
 	"fmt"
+	"log"
 	"presto/internal/bot/message_components"
 	"presto/internal/bot/modals"
 	"presto/internal/database"
@@ -10,8 +10,6 @@ import (
 	"presto/internal/discord/api"
 	"strconv"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var Settings = NewSlashCommandGroup("settings", "Anything you want to customize").
@@ -71,13 +69,6 @@ func ServerWarningSettingsHandler(interaction api.Interaction) {
 }
 
 func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
-	queries := database.New(database.Connection)
-	guild, _ := queries.GetGuild(context.Background(), interaction.Data.GuildID)
-
-	currentOnReachMaxWarningsPerUser := guild.OnReachMaxWarningsPerUser.Int32
-
-	settingsTab, _ := strconv.Atoi(interaction.Data.Data.Values[0])
-
 	errorMessage := discord.Message{
 		Embeds: []discord.Embed{
 			{
@@ -87,11 +78,26 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 	}
 
-	if settingsTab == 2 && currentOnReachMaxWarningsPerUser != int32(database.ON_REACH_MAX_WARNINGS_PER_USER_BAN) {
+	guild := database.Guild{
+		ID: interaction.Data.GuildID,
+	}
+	result := database.Connection.First(guild)
+	if result.Error != nil {
+		log.Printf("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		errorMessage.Embeds[0].Description = "There was an unexpected error while executing this command."
+		interaction.RespondWithMessage(errorMessage)
+		return
+	}
+
+	currentOnReachMaxWarningsPerUser := guild.OnReachMaxWarningsPerUser
+
+	settingsTab, _ := strconv.Atoi(interaction.Data.Data.Values[0])
+
+	if settingsTab == 2 && currentOnReachMaxWarningsPerUser != int8(database.ON_REACH_MAX_WARNINGS_PER_USER_BAN) {
 		errorMessage.Embeds[0].Description = "This tab is only accessible if the punishment for a user that gets too many warnings is **Ban**"
 		interaction.RespondWithMessage(errorMessage)
 		return
-	} else if (settingsTab == 3 || settingsTab == 4) && currentOnReachMaxWarningsPerUser != int32(database.ON_REACH_MAX_WARNINGS_PER_USER_GIVE_ROLE) {
+	} else if (settingsTab == 3 || settingsTab == 4) && currentOnReachMaxWarningsPerUser != int8(database.ON_REACH_MAX_WARNINGS_PER_USER_GIVE_ROLE) {
 		errorMessage.Embeds[0].Description = "This tab is only accessible if the punishment for a user that gets too many warnings is **Give role**"
 		interaction.RespondWithMessage(errorMessage)
 		return
@@ -117,7 +123,10 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			},
 			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 		}
-		queries := database.New(database.Connection)
+
+		guildToUpdate := database.Guild{
+			ID: interaction.Data.GuildID,
+		}
 
 		switch settingsTab {
 		case 0:
@@ -129,25 +138,13 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 				return
 			}
 
-			queries.UpdateMaxWarningsPerUserFromGuild(context.Background(), database.UpdateMaxWarningsPerUserFromGuildParams{
-				MaxWarningsPerUser: pgtype.Int4{
-					Int32: int32(newMaxWarningsPerUser),
-					Valid: true,
-				},
-				ID: interaction.Data.GuildID,
-			})
+			guildToUpdate.MaxWarningsPerUser = int8(newMaxWarningsPerUser)
 
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "maximum amount of warnings a user can receive")
 		case 1:
 			newOnReachMaxWarningsPerUser, _ := strconv.Atoi(interaction.Data.Data.Values[0])
 
-			queries.UpdateOnReachMaxWarningsPerUserFromGuild(context.Background(), database.UpdateOnReachMaxWarningsPerUserFromGuildParams{
-				OnReachMaxWarningsPerUser: pgtype.Int4{
-					Int32: int32(newOnReachMaxWarningsPerUser),
-					Valid: true,
-				},
-				ID: interaction.Data.GuildID,
-			})
+			guildToUpdate.OnReachMaxWarningsPerUser = int8(newOnReachMaxWarningsPerUser)
 
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "punishment for a user that receives too many warnings")
 		case 2:
@@ -159,44 +156,34 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 				return
 			}
 
-			queries.UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuild(context.Background(), database.UpdateSecondsToDeleteUserMessagesForOnReachMaxWarningsPerUserFromGuildParams{
-				SecondsToDeleteMessagesForOnReachMaxWarningsPerUser: pgtype.Int4{
-					Int32: int32(newMinutesToDeleteUserMessagesFor * 60),
-					Valid: true,
-				},
-				ID: interaction.Data.GuildID,
-			})
+			guildToUpdate.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser = newMinutesToDeleteUserMessagesFor * 60
 
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "quantity of minutes to delete banned user's messages for when they get too many warnings")
 		case 3:
 			newRoleToGiveOnReachMaxWarningsPerUser := interaction.Data.Data.Values[0]
 
-			queries.UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuild(context.Background(), database.UpdateRoletoGiveOnReachMaxWarningsPerUserFromGuildParams{
-				RoleToGiveOnReachMaxWarningsPerUser: pgtype.Text{
-					String: newRoleToGiveOnReachMaxWarningsPerUser,
-					Valid:  true,
-				},
-				ID: interaction.Data.GuildID,
-			})
+			guildToUpdate.RoleToGiveOnReachMaxWarningsPerUser = newRoleToGiveOnReachMaxWarningsPerUser
 
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "role to give when the user is warned too many times")
 		case 4:
-			newMinutesUseShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
+			newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
 
-			if err != nil || newMinutesUseShouldKeepRoleFor < 0 {
+			if err != nil || newMinutesUserShouldKeepRoleFor < 0 {
 				interaction.RespondWithMessage(errorMessage)
 				return
 			}
 
-			queries.UpdateSecondsUserShouldKeepRoleForFromGuild(context.Background(), database.UpdateSecondsUserShouldKeepRoleForFromGuildParams{
-				SecondsWarnedUserShouldKeepRoleFor: pgtype.Int4{
-					Int32: int32(newMinutesUseShouldKeepRoleFor * 60),
-					Valid: true,
-				},
-				ID: interaction.Data.GuildID,
-			})
+			guildToUpdate.SecondsPunishedUserShouldKeepRoleFor = newMinutesUserShouldKeepRoleFor * 60
 
 			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "quantity of minutes the user should keep the role for when they get too many warnings")
+		}
+
+		result := database.Connection.Save(guildToUpdate)
+		if result.Error != nil {
+			log.Printf("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when updating the server settings: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+			errorMessage.Embeds[0].Description = "There was an unexpected error while executing this command."
+			interaction.RespondWithMessage(errorMessage)
+			return
 		}
 
 		interaction.RespondWithMessage(successResponse)
@@ -211,7 +198,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
 			Label:       "Your answer (0 is unlimited)",
 			Placeholder: "Ex: 3",
-			Value:       strconv.Itoa(int(guild.MaxWarningsPerUser.Int32)),
+			Value:       strconv.Itoa(int(guild.MaxWarningsPerUser)),
 			Required:    true,
 			MinLength:   1,
 			MaxLength:   2,
@@ -274,7 +261,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
 			Label:       "Your answer (0 is no messages)",
 			Placeholder: "Ex: 10",
-			Value:       strconv.Itoa(int(guild.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser.Int32 / 60)),
+			Value:       strconv.Itoa(int(guild.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser / 60)),
 			Required:    true,
 			MinLength:   1,
 			MaxLength:   5,
@@ -316,7 +303,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) {
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
 			Label:       "Your answer",
 			Placeholder: "Ex: 10",
-			Value:       strconv.Itoa(int(guild.SecondsWarnedUserShouldKeepRoleFor.Int32 / 60)),
+			Value:       strconv.Itoa(int(guild.SecondsPunishedUserShouldKeepRoleFor / 60)),
 			Required:    true,
 			MinLength:   1,
 			MaxLength:   5,

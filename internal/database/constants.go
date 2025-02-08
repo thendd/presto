@@ -1,6 +1,6 @@
 package database
 
-type OnReachMaxWarningsPerUserType int
+type OnReachMaxWarningsPerUserType int8
 
 const (
 	ON_REACH_MAX_WARNINGS_PER_USER_BAN       OnReachMaxWarningsPerUserType = 0

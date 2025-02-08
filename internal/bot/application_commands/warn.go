@@ -1,8 +1,8 @@
 package application_commands
 
 import (
-	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -12,8 +12,6 @@ import (
 	"presto/internal/discord/api"
 	"presto/internal/discord/api/cache"
 	"presto/internal/discord/cdn"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var (
@@ -78,17 +76,43 @@ func WarnModelHandler(interaction api.Interaction) {
 
 	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
 
-	queries := database.New(database.Connection)
-	guildData, _ := queries.GetGuild(context.Background(), interaction.Data.GuildID)
-	userWarnings, err := queries.GetWarningsFromGuildMember(context.Background(), database.GetWarningsFromGuildMemberParams{GuildID: interaction.Data.GuildID, UserID: targetId})
-	if err != nil {
-		userWarnings, _ = queries.CreateGuildMember(context.Background(), database.CreateGuildMemberParams{
-			GuildID: interaction.Data.GuildID,
-			UserID:  targetId,
-		})
+	guildData := &database.Guild{
+		ID: interaction.Data.GuildID,
 	}
 
-	remainingWarnings := guildData.MaxWarningsPerUser.Int32 - userWarnings.Int32 - 1
+	result := database.Connection.First(&guildData)
+	if result.Error != nil {
+		log.Printf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		interaction.RespondWithMessage(discord.Message{
+			Embeds: []discord.Embed{
+				{
+					Description: "This command did not work due to an unknown error.",
+				},
+			},
+			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+		})
+		return
+	}
+
+	target := database.GuildMember{
+		GuildId: interaction.Data.GuildID,
+		UserId:  targetId,
+	}
+	result = database.Connection.FirstOrCreate(&target)
+	if result.Error != nil {
+		log.Printf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		interaction.RespondWithMessage(discord.Message{
+			Embeds: []discord.Embed{
+				{
+					Description: "This command did not work due to an unknown error.",
+				},
+			},
+			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+		})
+		return
+	}
+
+	remainingWarnings := guildData.MaxWarningsPerUser - target.Warnings - 1
 
 	dmChannel := cache.GetDMChannelByRecipientID(targetId)
 	if dmChannel.ID == "" {
@@ -136,16 +160,10 @@ func WarnModelHandler(interaction api.Interaction) {
 		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 	})
 
-	// Not sure whether this is the best way to do this, but if it's working, it's working
-	x := pgtype.Int4{
-		Int32: userWarnings.Int32 + 1,
-		Valid: true,
-	}
-
-	queries.UpdateGuildMemberWarnings(context.Background(), database.UpdateGuildMemberWarningsParams{
-		Warnings: x,
-		GuildID:  interaction.Data.GuildID,
-		UserID:   targetId,
+	database.Connection.Save(&database.GuildMember{
+		UserId:   targetId,
+		GuildId:  interaction.Data.GuildID,
+		Warnings: target.Warnings + 1,
 	})
 
 	warningEmbedDescription := fmt.Sprintf("You were warned in the server **%s** ", guild.Name)

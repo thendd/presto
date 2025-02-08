@@ -1,32 +1,26 @@
 package database
 
 import (
-	"context"
 	"log"
-	"os"
 	"presto/internal/database/config"
 
-	"github.com/jackc/pgx/v5"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var Connection *pgx.Conn
+var Connection *gorm.DB
 
 func Connect() {
 	log.Println("Started connecting to the database")
 
-	conn, err := pgx.Connect(context.Background(), config.POSTGRESQL_CONNECTION_STRING)
+	conn, err := gorm.Open(postgres.Open(config.POSTGRESQL_CONNECTION_STRING))
 	if err != nil {
-		log.Fatal("Could not connect to the database: ", err)
+		log.Println("Could not connect to the database: ", err)
 	}
 
 	Connection = conn
 
-	rawSchema, _ := os.ReadFile("./internal/database/schema.sql")
-
-	_, err = Connection.Exec(context.Background(), string(rawSchema))
-	if err != nil {
-		log.Fatal(err)
-	}
+	Connection.AutoMigrate(&Guild{})
 
 	log.Println("Connected to the database successfully")
 }
