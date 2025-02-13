@@ -1,25 +1,25 @@
 package discord
 
 const (
-	MESSAGE_COMPONENT_TYPE_ACTION_ROW         MessageComponentType = 1
-	MESSAGE_COMPONENT_TYPE_BUTTON             MessageComponentType = 2
-	MESSAGE_COMPONENT_TYPE_SELECT_MENU        MessageComponentType = 3
-	MESSAGE_COMPONENT_TYPE_TEXT_INPUT         MessageComponentType = 4
-	MESSAGE_COMPONENT_TYPE_USER_SELECT        MessageComponentType = 5
-	MESSAGE_COMPONENT_TYPE_ROLE_SELECT        MessageComponentType = 6
-	MESSAGE_COMPONENT_TYPE_MENTIONABLE_SELECT MessageComponentType = 7
-	MESSAGE_COMPONENT_TYPE_CHANNEL_SELECT     MessageComponentType = 8
+	MESSAGE_COMPONENT_TYPE_ACTION_ROW MessageComponentType = iota + 1
+	MESSAGE_COMPONENT_TYPE_BUTTON
+	MESSAGE_COMPONENT_TYPE_SELECT_MENU
+	MESSAGE_COMPONENT_TYPE_TEXT_INPUT
+	MESSAGE_COMPONENT_TYPE_USER_SELECT
+	MESSAGE_COMPONENT_TYPE_ROLE_SELECT
+	MESSAGE_COMPONENT_TYPE_MENTIONABLE_SELECT
+	MESSAGE_COMPONENT_TYPE_CHANNEL_SELECT
 )
 
 const (
-	TEXT_INPUT_STYLE_SHORT     MessageComponentStyle = 1
-	TEXT_INPUT_STYLE_PARAGRAPH MessageComponentStyle = 2
-	BUTTON_STYLE_PRIMARY       MessageComponentStyle = 1
-	BUTTON_STYLE_SECONDARY     MessageComponentStyle = 2
-	BUTTON_STYLE_SUCCESS       MessageComponentStyle = 3
-	BUTTON_STYLE_DANGER        MessageComponentStyle = 4
-	BUTTON_STYLE_LINK          MessageComponentStyle = 5
-	BUTTON_STYLE_PREMIUM       MessageComponentStyle = 6
+	TEXT_INPUT_STYLE_SHORT MessageComponentStyle = iota + 1
+	TEXT_INPUT_STYLE_PARAGRAPH
+	BUTTON_STYLE_PRIMARY
+	BUTTON_STYLE_SECONDARY
+	BUTTON_STYLE_SUCCESS
+	BUTTON_STYLE_DANGER
+	BUTTON_STYLE_LINK
+	BUTTON_STYLE_PREMIUM
 )
 
 const (
@@ -29,17 +29,17 @@ const (
 )
 
 const (
-	MESSAGE_FLAG_CROSSPOSTED                            MessageFlag = 1    // 1 << 0
-	MESSAGE_FLAG_IS_CROSSPOST                           MessageFlag = 2    // 1 << 1
-	MESSAGE_FLAG_SUPPRESS_EMBEDS                        MessageFlag = 4    // 1 << 2
-	MESSAGE_FLAG_SOURCE_MESSAGE_DELETED                 MessageFlag = 8    // 1 << 3
-	MESSAGE_FLAG_URGENT                                 MessageFlag = 16   // 1 << 4
-	MESSAGE_FLAG_HAS_THREAD                             MessageFlag = 32   // 1 << 5
-	MESSAGE_FLAG_EPHEMERAL                              MessageFlag = 64   // 1 << 6
-	MESSAGE_FLAG_LOADING                                MessageFlag = 128  // 1 << 7
-	MESSAGE_FLAG_FAILED_TO_MENTION_SOME_ROLES_IN_THREAD MessageFlag = 256  // 1 << 8
-	MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS                 MessageFlag = 4096 // 1 << 12
-	MESSAGE_FLAG_IS_VOICE_MESSAGE                       MessageFlag = 8192 // 1 << 13
+	MESSAGE_FLAG_CROSSPOSTED                            MessageFlag = 1              // 1 << 0
+	MESSAGE_FLAG_IS_CROSSPOST                           MessageFlag = 2 ^ (iota - 1) // 1 << 1
+	MESSAGE_FLAG_SUPPRESS_EMBEDS                        MessageFlag = 4              // 1 << 2
+	MESSAGE_FLAG_SOURCE_MESSAGE_DELETED                 MessageFlag = 8              // 1 << 3
+	MESSAGE_FLAG_URGENT                                 MessageFlag = 16             // 1 << 4
+	MESSAGE_FLAG_HAS_THREAD                             MessageFlag = 32             // 1 << 5
+	MESSAGE_FLAG_EPHEMERAL                              MessageFlag = 64             // 1 << 6
+	MESSAGE_FLAG_LOADING                                MessageFlag = 128            // 1 << 7
+	MESSAGE_FLAG_FAILED_TO_MENTION_SOME_ROLES_IN_THREAD MessageFlag = 256            // 1 << 8
+	MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS                 MessageFlag = 4096           // 1 << 12
+	MESSAGE_FLAG_IS_VOICE_MESSAGE                       MessageFlag = 8192           // 1 << 13
 )
 
 type (

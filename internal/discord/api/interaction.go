@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	INTERACTION_TYPE_PING                             discord.InteractionType = 1
-	INTERACTION_TYPE_APPLICATION_COMMAND              discord.InteractionType = 2
-	INTERACTION_TYPE_MESSAGE_COMPONENT                discord.InteractionType = 3
-	INTERACTION_TYPE_APPLICATION_COMMAND_AUTOCOMPLETE discord.InteractionType = 4
-	INTERACTION_TYPE_MODAL_SUBMIT                     discord.InteractionType = 5
+	INTERACTION_TYPE_PING discord.InteractionType = iota + 1
+	INTERACTION_TYPE_APPLICATION_COMMAND
+	INTERACTION_TYPE_MESSAGE_COMPONENT
+	INTERACTION_TYPE_APPLICATION_COMMAND_AUTOCOMPLETE
+	INTERACTION_TYPE_MODAL_SUBMIT
 )
 
 const (
