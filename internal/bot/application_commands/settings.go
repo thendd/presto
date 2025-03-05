@@ -13,12 +13,17 @@ import (
 	"time"
 )
 
-var Settings = NewSlashCommandGroup("settings", "Anything you want to customize").
-	AddSubCommandGroup("server", "Settings for your server").
-	AddSubCommand("server", "warnings", "What should I do when a user is warned?", []discord.ApplicationCommandOption{}, ServerWarningSettingsHandler).
+type UserInput struct {
+	CommitChanges func(guild database.Guild, value string) database.Guild
+	Conditions    func(value string) error
+	TabName       string
+}
+
+var GuildSettings = NewSlashCommand("settings", "Anything you want to customize", []ApplicationCommandWithHandlerDataOption{}, func(i api.Interaction) error { return nil }).
+	AddSubCommand("server", "Settings for your server", []ApplicationCommandWithHandlerDataOption{}, ServerSettingsHandler).
 	ToApplicationCommand()
 
-func ServerWarningSettingsHandler(interaction api.Interaction) error {
+func ServerSettingsHandler(interaction api.Interaction) error {
 	selectMenu := discord.MessageComponent{
 		Type:        discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
 		CustomID:    strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.Member.User.ID,
@@ -75,9 +80,9 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 	guild := database.Guild{
 		ID: interaction.Data.GuildID,
 	}
-	result := database.Connection.First(guild)
-	if result.Error != nil {
-		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+
+	if err := database.Connection.First(guild).Error; err != nil {
+		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, err)
 		return errors.UnknwonError
 	}
 
@@ -118,9 +123,16 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 			ID: interaction.Data.GuildID,
 		}
 
+		selectedTab := interaction.Data.Data.Components[0].Components[0].Value
+		if selectedTab == "" {
+			selectedTab = interaction.Data.Data.Values[0]
+		}
+
+		var property string
+
 		switch settingsTab {
 		case 0:
-			newMaxWarningsPerUser, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
+			newMaxWarningsPerUser, err := strconv.Atoi(selectedTab)
 
 			if err != nil || newMaxWarningsPerUser < 0 {
 				return errors.New("Your answer must be a positive, whole number or zero")
@@ -128,15 +140,15 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 
 			guildToUpdate.MaxWarningsPerUser = int8(newMaxWarningsPerUser)
 
-			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "maximum amount of warnings a user can receive")
+			property = "maximum amount of warnings a user can receive"
 		case 1:
-			newOnReachMaxWarningsPerUser, _ := strconv.Atoi(interaction.Data.Data.Values[0])
+			newOnReachMaxWarningsPerUser, _ := strconv.Atoi(selectedTab)
 
 			guildToUpdate.OnReachMaxWarningsPerUser = int8(newOnReachMaxWarningsPerUser)
 
-			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "punishment for a user that receives too many warnings")
+			property = "punishment for a user that receives too many warnings"
 		case 2:
-			newMinutesToDeleteUserMessagesFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
+			newMinutesToDeleteUserMessagesFor, err := strconv.Atoi(selectedTab)
 
 			if err != nil || newMinutesToDeleteUserMessagesFor < 1 || newMinutesToDeleteUserMessagesFor > 10080 {
 				return errors.New("Your answer must be a positive, whole number greater than 0 and lower than 10080")
@@ -144,13 +156,13 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 
 			guildToUpdate.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser = newMinutesToDeleteUserMessagesFor * 60
 
-			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "quantity of minutes to delete banned user's messages for when they get too many warnings")
+			property = "quantity of minutes to delete banned user's messages for when they get too many warnings"
 		case 3:
-			newRoleToGiveOnReachMaxWarningsPerUser := interaction.Data.Data.Values[0]
+			newRoleToGiveOnReachMaxWarningsPerUser := selectedTab
 
 			guildToUpdate.RoleToGiveOnReachMaxWarningsPerUser = newRoleToGiveOnReachMaxWarningsPerUser
 
-			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "role to give when the user is warned too many times")
+			property = "role to give when the user is warned too many times"
 		case 4:
 			newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
 			if err != nil || newMinutesUserShouldKeepRoleFor < 0 {
@@ -159,8 +171,10 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 
 			guildToUpdate.SecondsPunishedUserShouldKeepRoleFor = newMinutesUserShouldKeepRoleFor * 60
 
-			successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, "quantity of minutes the user should keep the role for when they get too many warnings")
+			property = "quantity of minutes the user should keep the role for when they get too many warnings"
 		}
+
+		successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, property)
 
 		if result := database.Connection.Save(guildToUpdate); result.Error != nil {
 			return errors.UnknwonError

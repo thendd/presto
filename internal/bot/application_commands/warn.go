@@ -17,14 +17,14 @@ import (
 
 var (
 	WarnUserCommand  = NewUserCommand("Warn", WarnHandler)
-	WarnSlashCommand = NewSlashCommand("warn", "Sends a warning to the user", []discord.ApplicationCommandOption{
+	WarnSlashCommand = NewSlashCommand("warn", "Sends a warning to the user", []ApplicationCommandWithHandlerDataOption{
 		{
 			Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_USER,
 			Name:        "user",
 			Description: "The user you would like to send a warning to",
 			Required:    true,
 		},
-	}, WarnHandler)
+	}, WarnHandler).ToApplicationCommand()
 	WarnMessageCommand = NewMessageCommand("Warn", WarnHandler)
 )
 

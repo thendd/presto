@@ -2,7 +2,6 @@ package events
 
 import (
 	"slices"
-	"strings"
 
 	"presto/internal/bot/application_commands"
 	"presto/internal/bot/message_components"
@@ -30,38 +29,22 @@ func ReceiveInteractionCreate(interactionData discord.InteractionCreatePayload) 
 
 func HandleApplicationCommands(interaction api.Interaction) {
 	interactionName := discord.GetInteractionName(interaction.Data.Data)
-	index := slices.IndexFunc(application_commands.RegisteredCommands, func(e application_commands.ApplicationCommandWithHandlers) bool {
-		return discord.GetApplicationCommandName(e.Data) == interactionName
+	applicationCommandIndex := slices.IndexFunc(application_commands.Local, func(e application_commands.ApplicationCommandWithHandler) bool {
+		applicationCommandNames := discord.GetFullNamesOfApplicationCommand(e.ToApplicationCommand())
+		return slices.Contains(applicationCommandNames, interactionName)
 	})
 
-	if index != -1 {
+	if applicationCommandIndex != -1 {
 		var err error
-		applicationCommand := application_commands.RegisteredCommands[index]
 
-		if len(applicationCommand.Handlers) == 1 {
-			err = applicationCommand.Handlers[0](interaction)
+		applicationCommand := application_commands.Local[applicationCommandIndex]
+		if applicationCommand.Data.Name == interactionName {
+			err = applicationCommand.Handler(interaction)
 		} else {
-			splittedInteractionName := strings.Split(interactionName, " ")
-			applicationCommandToFind := splittedInteractionName[len(splittedInteractionName)-1]
-
-			var subCommands []discord.ApplicationCommandOption
-			var lookForSubCommands func([]discord.ApplicationCommandOption)
-
-			lookForSubCommands = func(options []discord.ApplicationCommandOption) {
-				for _, option := range options {
-					if option.Type == discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND {
-						subCommands = append(subCommands, option)
-					} else if option.Type == discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP {
-						lookForSubCommands(option.Options)
-					}
-				}
-			}
-
-			lookForSubCommands(applicationCommand.Data.Options)
-
-			for index, subCommand := range subCommands {
-				if subCommand.Name == applicationCommandToFind {
-					err = applicationCommand.Handlers[index](interaction)
+			for _, option := range applicationCommand.Data.Options {
+				if applicationCommand.Data.Name+" "+option.Name == interactionName {
+					err = option.Handler(interaction)
+					break
 				}
 			}
 		}

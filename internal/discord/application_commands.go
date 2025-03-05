@@ -1,6 +1,6 @@
 package discord
 
-import "strings"
+import "slices"
 
 const (
 	APPLICATION_COMMAND_TYPE_CHAT_INPUT ApplicationCommandType = iota + 1
@@ -45,27 +45,20 @@ type ApplicationCommandOption struct {
 	Options      []ApplicationCommandOption   `json:"options,omitempty"`
 }
 
-// Joins the name of the application command options if they are sub commands or sub command groups
-func JoinApplicationCommandOptionsNames(options []ApplicationCommandOption) string {
+func GetFullNamesOfApplicationCommand(command ApplicationCommand) []string {
 	var names []string
 
-	var appendNames func([]ApplicationCommandOption)
-	appendNames = func(opts []ApplicationCommandOption) {
-		for _, option := range opts {
-			if option.Type == APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND || option.Type == APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP {
-				names = append(names, option.Name)
-				appendNames(option.Options)
-			}
+	for _, option := range command.Options {
+		if option.Type == APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND {
+			names = append(names, command.Name+" "+option.Name)
 		}
 	}
 
-	appendNames(options)
-	return strings.Join(names, " ")
-}
+	if len(names) == 0 {
+		names = append(names, command.Name)
+	}
 
-// Gets the "whole name" of an application command, joining its base name, sub command names and sub command group names
-func GetApplicationCommandName(applicationCommand ApplicationCommand) string {
-	return applicationCommand.Name + " " + JoinApplicationCommandOptionsNames(applicationCommand.Options)
+	return names
 }
 
 // Compares two `[]ApplicationCommandOption` and returns whether they are exaclty equal or not
@@ -96,29 +89,9 @@ func AreApplicationCommandOptionsEqual(a []ApplicationCommandOption, b []Applica
 // will have `nil` as the ID while the application command fetched from Discord will have some
 // snowflake as the ID.
 func CompareApplicationCommands(a ApplicationCommand, b ApplicationCommand) bool {
-	if GetApplicationCommandName(a) != GetApplicationCommandName(b) {
+	if !slices.Equal(GetFullNamesOfApplicationCommand(a), GetFullNamesOfApplicationCommand(b)) {
 		return false
 	}
 
 	return a.Description == b.Description && a.Type == b.Type && AreApplicationCommandOptionsEqual(a.Options, b.Options)
-}
-
-// Creates a slash command. This was made in order to avoid the unnecessary declaration
-// of the `ApplicationCommand.Type` as it will always equal to `constants.APPLICATION_COMMAND_TYPE_CHAT_INPUT`
-// when the application command is an slash command.
-func CreateSlashCommand(name, description string, options []ApplicationCommandOption) ApplicationCommand {
-	return ApplicationCommand{
-		Type:        APPLICATION_COMMAND_TYPE_CHAT_INPUT,
-		Name:        name,
-		Description: description,
-		Options:     options,
-	}
-}
-
-// Creates an UI application command for users.
-func CreateUserApplicationCommand(name string) ApplicationCommand {
-	return ApplicationCommand{
-		Type: APPLICATION_COMMAND_TYPE_USER,
-		Name: name,
-	}
 }

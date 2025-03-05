@@ -9,7 +9,8 @@ import (
 	"presto/internal/discord/api"
 )
 
-var Ping = NewSlashCommand("ping", "Have you ever heard about ping pong?", []discord.ApplicationCommandOption{}, PingHandler)
+var Ping = NewSlashCommand("ping", "Have you ever heard about ping pong?", []ApplicationCommandWithHandlerDataOption{}, PingHandler).
+	ToApplicationCommand()
 
 func PingHandler(interaction api.Interaction) error {
 	start := time.Now()

@@ -23,11 +23,7 @@ const (
 	APPLICATION_COMMAND_OPTION_TYPE_ATTACHMENT
 )
 
-type createApplicationCommandRequestBody discord.ApplicationCommand
-
-type getApplicationCommandsResponseBody []discord.ApplicationCommand
-
-func GetGlobalApplicationCommands() (response getApplicationCommandsResponseBody) {
+func GetGlobalApplicationCommands() (response []discord.ApplicationCommand) {
 	rawResponse, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/commands", http.MethodGet, nil)
 
 	if statusCode != http.StatusOK {
@@ -38,7 +34,7 @@ func GetGlobalApplicationCommands() (response getApplicationCommandsResponseBody
 	return
 }
 
-func GetTestingGuildApplicationCommands() (response getApplicationCommandsResponseBody) {
+func GetTestingGuildApplicationCommands() (response []discord.ApplicationCommand) {
 	rawResponse, statusCode := MakeRequest("/applications/"+config.APPLICATION_ID+"/guilds/"+config.TESTING_GUILD_ID+"/commands", http.MethodGet, nil)
 
 	if statusCode != http.StatusOK {

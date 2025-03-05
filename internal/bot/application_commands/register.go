@@ -9,52 +9,93 @@ import (
 	"presto/internal/discord/api"
 )
 
-type ApplicationCommandWithHandlers struct {
-	Data     discord.ApplicationCommand
-	Handlers []func(api.Interaction) error
+type ApplicationCommandWithHandlerDataOption struct {
+	Type         discord.ApplicationCommandOptionType      `json:"type"`
+	Name         string                                    `json:"name"`
+	Description  string                                    `json:"description"`
+	Required     bool                                      `json:"required"`
+	Autocomplete bool                                      `json:"autocomplete"`
+	Options      []ApplicationCommandWithHandlerDataOption `json:"options,omitempty"`
+	Handler      func(api.Interaction) error               `json:"-"`
 }
 
-type SlashCommandGroup ApplicationCommandWithHandlers
+type ApplicationCommandWithHandlerData struct {
+	ID          any                                       `json:"id,omitempty"`
+	Name        string                                    `json:"name"`
+	Description string                                    `json:"description"`
+	Options     []ApplicationCommandWithHandlerDataOption `json:"options,omitempty"`
+	Type        discord.ApplicationCommandType            `json:"type,omitempty"`
+}
 
-func (group *SlashCommandGroup) AddSubCommandGroup(name, description string) *SlashCommandGroup {
-	group.Data.Options = append(group.Data.Options, discord.ApplicationCommandOption{
-		Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP,
+type ApplicationCommandWithHandler struct {
+	Data    ApplicationCommandWithHandlerData
+	Handler func(api.Interaction) error
+}
+
+func (applicationCommandWithHandler ApplicationCommandWithHandler) ToApplicationCommand() discord.ApplicationCommand {
+	var lookForOptions func(options []ApplicationCommandWithHandlerDataOption) []discord.ApplicationCommandOption
+	lookForOptions = func(options []ApplicationCommandWithHandlerDataOption) []discord.ApplicationCommandOption {
+		var final []discord.ApplicationCommandOption
+
+		for _, option := range options {
+			finalOptions := lookForOptions(option.Options)
+
+			final = append(final, discord.ApplicationCommandOption{
+				Type:         option.Type,
+				Name:         option.Name,
+				Description:  option.Description,
+				Required:     option.Required,
+				Autocomplete: option.Autocomplete,
+				Options:      finalOptions,
+			})
+		}
+
+		return final
+	}
+
+	return discord.ApplicationCommand{
+		ID:          applicationCommandWithHandler.Data.ID,
+		Name:        applicationCommandWithHandler.Data.Name,
+		Description: applicationCommandWithHandler.Data.Description,
+		Type:        applicationCommandWithHandler.Data.Type,
+		Options:     lookForOptions(applicationCommandWithHandler.Data.Options),
+	}
+}
+
+type SlashCommand ApplicationCommandWithHandler
+
+func (command *SlashCommand) AddSubCommandGroup(name string) *SlashCommand {
+	command.Data.Options = append(command.Data.Options, ApplicationCommandWithHandlerDataOption{
+		Type: discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP,
+		Name: name,
+	})
+
+	return command
+}
+
+func (command *SlashCommand) AddSubCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler func(api.Interaction) error) *SlashCommand {
+	command.Data.Options = append(command.Data.Options, ApplicationCommandWithHandlerDataOption{
+		Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND,
 		Name:        name,
 		Description: description,
+		Options:     options,
+		Handler:     handler,
 	})
 
-	return group
+	return command
 }
 
-func (group *SlashCommandGroup) AddSubCommand(subCommandGroup, name, description string, options []discord.ApplicationCommandOption, handler func(api.Interaction) error) *SlashCommandGroup {
-	index := slices.IndexFunc(group.Data.Options, func(e discord.ApplicationCommandOption) bool {
-		return e.Name == subCommandGroup && e.Type == discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND_GROUP
-	})
-
-	if index != -1 {
-		group.Data.Options[index].Options = append(group.Data.Options[index].Options, discord.ApplicationCommandOption{
-			Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND,
-			Name:        name,
-			Description: description,
-			Options:     options,
-		})
-		group.Handlers = append(group.Handlers, handler)
-	}
-
-	return group
-}
-
-func (group *SlashCommandGroup) ToApplicationCommand() ApplicationCommandWithHandlers {
-	return ApplicationCommandWithHandlers{
-		Data:     group.Data,
-		Handlers: group.Handlers,
+func (command *SlashCommand) ToApplicationCommand() ApplicationCommandWithHandler {
+	return ApplicationCommandWithHandler{
+		Data:    command.Data,
+		Handler: command.Handler,
 	}
 }
 
-func NewSlashCommand(name, description string, options []discord.ApplicationCommandOption, handlers ...func(api.Interaction) error) ApplicationCommandWithHandlers {
-	return ApplicationCommandWithHandlers{
-		Handlers: handlers,
-		Data: discord.ApplicationCommand{
+func NewSlashCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler func(api.Interaction) error) *SlashCommand {
+	return &SlashCommand{
+		Handler: handler,
+		Data: ApplicationCommandWithHandlerData{
 			Type:        discord.APPLICATION_COMMAND_TYPE_CHAT_INPUT,
 			Name:        name,
 			Description: description,
@@ -63,41 +104,32 @@ func NewSlashCommand(name, description string, options []discord.ApplicationComm
 	}
 }
 
-func NewSlashCommandGroup(name, description string) *SlashCommandGroup {
-	return &SlashCommandGroup{
-		Data: discord.ApplicationCommand{
-			Name:        name,
-			Description: description,
-		},
-	}
-}
-
-func NewUserCommand(name string, handlers ...func(api.Interaction) error) ApplicationCommandWithHandlers {
-	return ApplicationCommandWithHandlers{
-		Handlers: handlers,
-		Data: discord.ApplicationCommand{
+func NewUserCommand(name string, handler func(api.Interaction) error) ApplicationCommandWithHandler {
+	return ApplicationCommandWithHandler{
+		Handler: handler,
+		Data: ApplicationCommandWithHandlerData{
 			Type: discord.APPLICATION_COMMAND_TYPE_USER,
 			Name: name,
 		},
 	}
 }
 
-func NewMessageCommand(name string, handlers ...func(api.Interaction) error) ApplicationCommandWithHandlers {
-	return ApplicationCommandWithHandlers{
-		Handlers: handlers,
-		Data: discord.ApplicationCommand{
+func NewMessageCommand(name string, handler func(api.Interaction) error) ApplicationCommandWithHandler {
+	return ApplicationCommandWithHandler{
+		Handler: handler,
+		Data: ApplicationCommandWithHandlerData{
 			Type: discord.APPLICATION_COMMAND_TYPE_MESSAGE,
 			Name: name,
 		},
 	}
 }
 
-var RegisteredCommands = []ApplicationCommandWithHandlers{
+var Local = []ApplicationCommandWithHandler{
 	Ping,
 	WarnUserCommand,
 	WarnSlashCommand,
 	WarnMessageCommand,
-	Settings,
+	GuildSettings,
 }
 
 func Register() {
@@ -106,67 +138,59 @@ func Register() {
 	mustDelete := []discord.ApplicationCommand{}
 	mustCreate := []discord.ApplicationCommand{}
 
+	var localApplicationCommands []discord.ApplicationCommand
+
+	for _, localApplicationCommand := range Local {
+		localApplicationCommands = append(localApplicationCommands, localApplicationCommand.ToApplicationCommand())
+	}
+
+	var applicationCommands []discord.ApplicationCommand
+
 	switch os.Getenv("PRESTO_ENVIRONMENT") {
 	case "production":
-		applicationCommands := api.GetGlobalApplicationCommands()
+		applicationCommands = api.GetGlobalApplicationCommands()
+	case "development":
+		applicationCommands = api.GetTestingGuildApplicationCommands()
+	default:
+		log.Fatal("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
+	}
 
-		for _, registeredCommand := range RegisteredCommands {
-			possibleExistingApplicationCommandIndex := slices.IndexFunc(applicationCommands, func(e discord.ApplicationCommand) bool {
-				return discord.GetApplicationCommandName(registeredCommand.Data) == discord.GetApplicationCommandName(e)
-			})
+	for _, applicationCommand := range applicationCommands {
+		exactMatchIndex := slices.IndexFunc(localApplicationCommands, func(localApplicationCommand discord.ApplicationCommand) bool {
+			return discord.CompareApplicationCommands(applicationCommand, localApplicationCommand)
+		})
 
-			if possibleExistingApplicationCommandIndex == -1 || !discord.CompareApplicationCommands(registeredCommand.Data, applicationCommands[possibleExistingApplicationCommandIndex]) {
-				mustCreate = append(mustCreate, registeredCommand.Data)
-				return
-			}
-
-			applicationCommands = append(applicationCommands[:possibleExistingApplicationCommandIndex], applicationCommands[possibleExistingApplicationCommandIndex+1:]...)
+		if exactMatchIndex == -1 {
+			mustDelete = append(mustDelete, applicationCommand)
+			continue
 		}
 
-		// If an application command exists and does not correspond with the name of any of the registered commands,
-		// it must be deleted
-		mustDelete = applicationCommands
+		localApplicationCommands = slices.Delete(localApplicationCommands, exactMatchIndex, exactMatchIndex+1)
+	}
 
+	mustCreate = localApplicationCommands
+
+	switch os.Getenv("PRESTO_ENVIRONMENT") {
+	case "production":
 		for _, applicationCommand := range mustDelete {
 			api.DeleteGlobalApplicationCommand(applicationCommand.ID.(string))
-			log.Info("\"%s\" command was deleted globally and successfully\n", applicationCommand.Name)
+			log.Info("\"%s\" command was deleted globally and successfully", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
 			api.CreateGlobalApplicationCommand(applicationCommand)
-			log.Info("\"%s\" command was created/updated globaly successfully\n", applicationCommand.Name)
+			log.Info("\"%s\" command was created/updated globaly successfully", applicationCommand.Name)
 		}
 	case "development":
-		applicationCommands := api.GetTestingGuildApplicationCommands()
-
-		for _, registeredCommand := range RegisteredCommands {
-			possibleExistingApplicationCommandIndex := slices.IndexFunc(applicationCommands, func(e discord.ApplicationCommand) bool {
-				return discord.GetApplicationCommandName(registeredCommand.Data) == discord.GetApplicationCommandName(e)
-			})
-
-			if possibleExistingApplicationCommandIndex == -1 || !discord.CompareApplicationCommands(registeredCommand.Data, applicationCommands[possibleExistingApplicationCommandIndex]) {
-				mustCreate = append(mustCreate, registeredCommand.Data)
-				return
-			}
-
-			applicationCommands = append(applicationCommands[:possibleExistingApplicationCommandIndex], applicationCommands[possibleExistingApplicationCommandIndex+1:]...)
-		}
-
-		// If an application command exists and does not correspond with the name of any of the registered commands,
-		// it must be deleted
-		mustDelete = applicationCommands
-
 		for _, applicationCommand := range mustDelete {
 			api.DeleteTestingGuildApplicationCommand(applicationCommand.ID.(string))
-			log.Info("\"%s\" command was deleted successfully in the testing guild\n", applicationCommand.Name)
+			log.Info("\"%s\" command was deleted successfully in the testing guild", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
 			api.CreateTestingGuildApplicationCommand(applicationCommand)
-			log.Info("\"%s\" command was created/updated successfully in the testing guild\n", applicationCommand.Name)
+			log.Info("\"%s\" command was created/updated successfully in the testing guild", applicationCommand.Name)
 		}
-	default:
-		log.Fatal("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
 	}
 
 	log.Info("Finished registering commands successfully")
