@@ -30,8 +30,7 @@ func ReceiveInteractionCreate(interactionData discord.InteractionCreatePayload) 
 func HandleApplicationCommands(interaction api.Interaction) {
 	interactionName := discord.GetInteractionName(interaction.Data.Data)
 	applicationCommandIndex := slices.IndexFunc(application_commands.Local, func(e application_commands.ApplicationCommandWithHandler) bool {
-		applicationCommandNames := discord.GetFullNamesOfApplicationCommand(e.ToApplicationCommand())
-		return slices.Contains(applicationCommandNames, interactionName)
+		return slices.Contains(discord.GetFullNamesOfApplicationCommand(e.ToApplicationCommand()), interactionName)
 	})
 
 	if applicationCommandIndex != -1 {
@@ -69,7 +68,7 @@ func HandleModalSubmit(interaction api.Interaction) {
 	})
 
 	if index != -1 {
-		err := registeredModals[index].Handler(interaction)
+		err := registeredModals[index].Handler(interaction, registeredModals[index].Args...)
 		modals.Remove(index)
 
 		if err != nil {
@@ -91,7 +90,7 @@ func HandleMessageComponentInteraction(interaction api.Interaction) {
 	})
 
 	if index != -1 {
-		err := message_components.SelectMenus[index].Handler(interaction)
+		err := message_components.SelectMenus[index].Handler(interaction, message_components.SelectMenus[index].Args...)
 		if err != nil {
 			interaction.RespondWithMessage(discord.Message{
 				Embeds: []discord.Embed{
@@ -104,8 +103,6 @@ func HandleMessageComponentInteraction(interaction api.Interaction) {
 			return
 		}
 
-		if message_components.SelectMenus[index].DeleteAfterInteracted {
-			message_components.SelectMenus = append(message_components.SelectMenus[:index], message_components.SelectMenus[index+1:]...)
-		}
+		message_components.SelectMenus = slices.Delete(message_components.SelectMenus, index, index+1)
 	}
 }

@@ -1,6 +1,8 @@
 package discord
 
-import "slices"
+import (
+	"slices"
+)
 
 const (
 	APPLICATION_COMMAND_TYPE_CHAT_INPUT ApplicationCommandType = iota + 1

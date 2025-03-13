@@ -13,17 +13,31 @@ import (
 	"time"
 )
 
-type UserInput struct {
-	CommitChanges func(guild database.Guild, value string) database.Guild
-	Conditions    func(value string) error
+type SelectMenuInput struct {
+	CommitChanges func(guild *database.Guild, value any)
+	Conditions    func(value string) (any, error)
 	TabName       string
 }
 
-var GuildSettings = NewSlashCommand("settings", "Anything you want to customize", []ApplicationCommandWithHandlerDataOption{}, func(i api.Interaction) error { return nil }).
-	AddSubCommand("server", "Settings for your server", []ApplicationCommandWithHandlerDataOption{}, ServerSettingsHandler).
+var GuildSettings = NewSlashCommand(
+	"settings",
+	"Anything you want to customize",
+	[]ApplicationCommandWithHandlerDataOption{},
+	func(i api.Interaction) error { return nil },
+).
+	AddSubCommand("server", "Settings for your server", []ApplicationCommandWithHandlerDataOption{}, GuildSettingsHandler).
 	ToApplicationCommand()
 
-func ServerSettingsHandler(interaction api.Interaction) error {
+func GuildSettingsHandler(interaction api.Interaction) error {
+	guild := database.Guild{
+		ID: interaction.Data.GuildID,
+	}
+
+	if err := database.Connection.First(&guild).Error; err != nil {
+		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, err)
+		return errors.UnknwonError
+	}
+
 	selectMenu := discord.MessageComponent{
 		Type:        discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
 		CustomID:    strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.Member.User.ID,
@@ -38,31 +52,35 @@ func ServerSettingsHandler(interaction api.Interaction) error {
 				Description: "Configure a punishment",
 				Value:       "1",
 			},
-			{
-				Label:       "Minutes to delete banned user messages for",
-				Description: "If punishment is \"Ban\", deletes messages from the user x minutes before",
-				Value:       "2",
-			},
-			{
-				Label:       "Role to give to user",
-				Description: "If punishment is \"Give role\", this role will be given to the user",
-				Value:       "3",
-			},
-			{
-				Label:       "Minutes the user should keep the role for",
-				Description: "If punishment is \"Give role\", decide how much time he will keep the role for",
-				Value:       "4",
-			},
 		},
 	}
 
+	switch guild.OnReachMaxWarningsPerUser {
+	case int(database.ON_REACH_MAX_WARNINGS_PER_USER_BAN):
+		selectMenu.Options = append(selectMenu.Options, discord.SelectOption{
+			Label:       "Minutes to delete banned user messages for",
+			Description: "If punishment is \"Ban\", deletes messages sent x minutes before",
+			Value:       "2",
+		})
+	case int(database.ON_REACH_MAX_WARNINGS_PER_USER_GIVE_ROLE):
+		selectMenu.Options = append(selectMenu.Options, discord.SelectOption{
+			Label:       "Role to give to user",
+			Description: "If punishment is \"Give role\", this role will be given to the user",
+			Value:       "3",
+		}, discord.SelectOption{
+			Label:       "Minutes the user should keep the role for",
+			Description: "If punishment is \"Give role\", decide how much time he will keep the role for",
+			Value:       "4",
+		})
+	}
+
 	message_components.SelectMenus = append(message_components.SelectMenus, message_components.SelectMenuWithHandler{
-		Data:                  selectMenu,
-		Handler:               ServerWarningSettingsSelectMenuHandler,
-		DeleteAfterInteracted: false,
+		Data:    selectMenu,
+		Handler: ServerSettingsSelectMenuHandler,
+		Args:    []any{guild, interaction.Data.Token},
 	})
 
-	interaction.RespondWithMessage(discord.Message{
+	err := interaction.RespondWithMessage(discord.Message{
 		Components: []discord.MessageComponent{
 			{
 				Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
@@ -71,32 +89,19 @@ func ServerSettingsHandler(interaction api.Interaction) error {
 				},
 			},
 		},
+		Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 	})
+	if err != nil {
+		log.Error(err.Error())
+	}
 
 	return nil
 }
 
-func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
-	guild := database.Guild{
-		ID: interaction.Data.GuildID,
-	}
-
-	if err := database.Connection.First(guild).Error; err != nil {
-		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the server data: %s", interaction.Data.User.ID, interaction.Data.GuildID, err)
-		return errors.UnknwonError
-	}
-
-	currentOnReachMaxWarningsPerUser := guild.OnReachMaxWarningsPerUser
-
+func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) error {
+	guild := args[0].(database.Guild)
+	originalInteractionToken := args[1].(string)
 	settingsTab, _ := strconv.Atoi(interaction.Data.Data.Values[0])
-
-	template := "This tab is only accessible if the punishment for a user that gets too many warnings is **%s**"
-
-	if settingsTab == 2 && currentOnReachMaxWarningsPerUser != int8(database.ON_REACH_MAX_WARNINGS_PER_USER_BAN) {
-		return errors.New(fmt.Sprintf(template, "Ban user"))
-	} else if (settingsTab == 3 || settingsTab == 4) && currentOnReachMaxWarningsPerUser != int8(database.ON_REACH_MAX_WARNINGS_PER_USER_GIVE_ROLE) {
-		return errors.New(fmt.Sprintf(template, "Give role"))
-	}
 
 	modalTemplate := api.Modal{
 		CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.Member.User.ID,
@@ -107,80 +112,114 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 		},
 	}
 
-	var settingsTabHandler func(interaction api.Interaction) error
-	settingsTabHandler = func(interaction api.Interaction) error {
-		successResponse := discord.Message{
-			Embeds: []discord.Embed{
-				{
-					Description: "The **%s** was updated successfully.",
-					Color:       discord.EMBED_COLOR_GREEN,
-				},
-			},
-			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
-		}
+	inputs := []SelectMenuInput{
+		{
+			TabName: "maximum amount of warnings a member can receive",
+			Conditions: func(value string) (any, error) {
+				newMaxWarningsPerUser, err := strconv.Atoi(value)
 
+				if err != nil || newMaxWarningsPerUser < 1 {
+					return 0, errors.New("Your answer must be a positive, whole number")
+				}
+
+				return newMaxWarningsPerUser, nil
+			},
+			CommitChanges: func(guild *database.Guild, value any) {
+				guild.MaxWarningsPerUser = value.(int)
+			},
+		},
+		{
+			TabName: "punishment for a member that receives too many warnings",
+			Conditions: func(value string) (any, error) {
+				return strconv.Atoi(value)
+			},
+			CommitChanges: func(guild *database.Guild, value any) {
+				guild.OnReachMaxWarningsPerUser = value.(int)
+			},
+		},
+		{
+			TabName: "quantity of minutes to delete banned member's messages for when they get too many warnings",
+			Conditions: func(value string) (any, error) {
+				newMinutesToDeleteUserMessagesFor, err := strconv.Atoi(value)
+
+				if err != nil || newMinutesToDeleteUserMessagesFor < 1 || newMinutesToDeleteUserMessagesFor > 10080 {
+					return 0, errors.New("Your answer must be a positive, whole number greater than 0 and lower than 10080")
+				}
+
+				return newMinutesToDeleteUserMessagesFor * 60, nil
+			},
+			CommitChanges: func(guild *database.Guild, value any) {
+				guild.SecondsPunishedUserShouldKeepRoleFor = value.(int)
+			},
+		},
+		{
+			TabName: "role to give when a member gets too many warnings",
+			Conditions: func(value string) (any, error) {
+				return value, nil
+			},
+			CommitChanges: func(guild *database.Guild, value any) {
+				guild.RoleToGiveOnReachMaxWarningsPerUser = value.(string)
+			},
+		},
+		{
+			TabName: "quantity of minutes the member should keep the role for when they get too many warnings",
+			Conditions: func(value string) (any, error) {
+				newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
+				if err != nil || newMinutesUserShouldKeepRoleFor < 1 {
+					return 0, errors.New("Your answer must be a positive, whole number")
+				}
+
+				return newMinutesUserShouldKeepRoleFor * 60, nil
+			},
+			CommitChanges: func(guild *database.Guild, value any) {
+				guild.SecondsPunishedUserShouldKeepRoleFor = value.(int)
+			},
+		},
+	}
+
+	var settingsTabHandler func(interaction api.Interaction, args ...any) error
+	settingsTabHandler = func(interaction api.Interaction, _ ...any) error {
 		guildToUpdate := database.Guild{
 			ID: interaction.Data.GuildID,
 		}
 
-		selectedTab := interaction.Data.Data.Components[0].Components[0].Value
-		if selectedTab == "" {
+		var selectedTab string
+		if len(interaction.Data.Data.Values) != 0 {
 			selectedTab = interaction.Data.Data.Values[0]
+		} else {
+			selectedTab = interaction.Data.Data.Components[0].Components[0].Value
 		}
 
-		var property string
+		toCommit, err := inputs[settingsTab].Conditions(selectedTab)
+		if err != nil {
+			interaction.EditOriginalInteraction(discord.Message{
+				Embeds: []discord.Embed{
+					{
+						Description: err.Error(),
+						Color:       discord.EMBED_COLOR_RED,
+					},
+				},
+				Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+			}, originalInteractionToken)
 
-		switch settingsTab {
-		case 0:
-			newMaxWarningsPerUser, err := strconv.Atoi(selectedTab)
-
-			if err != nil || newMaxWarningsPerUser < 0 {
-				return errors.New("Your answer must be a positive, whole number or zero")
-			}
-
-			guildToUpdate.MaxWarningsPerUser = int8(newMaxWarningsPerUser)
-
-			property = "maximum amount of warnings a user can receive"
-		case 1:
-			newOnReachMaxWarningsPerUser, _ := strconv.Atoi(selectedTab)
-
-			guildToUpdate.OnReachMaxWarningsPerUser = int8(newOnReachMaxWarningsPerUser)
-
-			property = "punishment for a user that receives too many warnings"
-		case 2:
-			newMinutesToDeleteUserMessagesFor, err := strconv.Atoi(selectedTab)
-
-			if err != nil || newMinutesToDeleteUserMessagesFor < 1 || newMinutesToDeleteUserMessagesFor > 10080 {
-				return errors.New("Your answer must be a positive, whole number greater than 0 and lower than 10080")
-			}
-
-			guildToUpdate.SecondsToDeleteMessagesForOnReachMaxWarningsPerUser = newMinutesToDeleteUserMessagesFor * 60
-
-			property = "quantity of minutes to delete banned user's messages for when they get too many warnings"
-		case 3:
-			newRoleToGiveOnReachMaxWarningsPerUser := selectedTab
-
-			guildToUpdate.RoleToGiveOnReachMaxWarningsPerUser = newRoleToGiveOnReachMaxWarningsPerUser
-
-			property = "role to give when the user is warned too many times"
-		case 4:
-			newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
-			if err != nil || newMinutesUserShouldKeepRoleFor < 0 {
-				return errors.New("Your answer must be a positive, whole number")
-			}
-
-			guildToUpdate.SecondsPunishedUserShouldKeepRoleFor = newMinutesUserShouldKeepRoleFor * 60
-
-			property = "quantity of minutes the user should keep the role for when they get too many warnings"
+			return err
 		}
 
-		successResponse.Embeds[0].Description = fmt.Sprintf(successResponse.Embeds[0].Description, property)
+		inputs[settingsTab].CommitChanges(&guildToUpdate, toCommit)
 
 		if result := database.Connection.Save(guildToUpdate); result.Error != nil {
 			return errors.UnknwonError
 		}
 
-		interaction.RespondWithMessage(successResponse)
+		err = interaction.EditOriginalInteraction(discord.Message{
+			Embeds: []discord.Embed{
+				{
+					Description: fmt.Sprintf("The **%s** was updated successfully.", inputs[settingsTab].TabName),
+					Color:       discord.EMBED_COLOR_GREEN,
+				},
+			},
+			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
+		}, originalInteractionToken)
 
 		return nil
 	}
@@ -192,7 +231,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 			CustomID:    "text-input",
 			Type:        discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
-			Label:       "Your answer (0 is unlimited)",
+			Label:       "Your answer",
 			Placeholder: "Ex: 3",
 			Value:       strconv.Itoa(int(guild.MaxWarningsPerUser)),
 			Required:    true,
@@ -226,20 +265,15 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 					Description: "You can choose which role and how much time the user should keep it",
 					Value:       "2",
 				},
-				{
-					Label: "Nothing",
-					Value: "3",
-				},
 			},
 		}
 
 		message_components.SelectMenus = append(message_components.SelectMenus, message_components.SelectMenuWithHandler{
-			Data:                  selectMenu,
-			DeleteAfterInteracted: true,
-			Handler:               settingsTabHandler,
+			Data:    selectMenu,
+			Handler: settingsTabHandler,
 		})
 
-		interaction.RespondWithMessage(discord.Message{
+		interaction.EditOriginalInteraction(discord.Message{
 			Content: "What should I do when user is warned too many times?",
 			Components: []discord.MessageComponent{
 				{
@@ -248,9 +282,9 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 				},
 			},
 			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
-		})
+		}, originalInteractionToken)
 	case 2:
-		modalTemplate.Title = "Minutes to delete banned user messages for"
+		modalTemplate.Title = "Quantity of minutes to delete banned user messages for"
 		modalTemplate.Components[0].Components = append(modalTemplate.Components[0].Components, discord.MessageComponent{
 			CustomID:    "text-input",
 			Type:        discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
@@ -276,12 +310,11 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 		}
 
 		message_components.SelectMenus = append(message_components.SelectMenus, message_components.SelectMenuWithHandler{
-			Data:                  selectMenu,
-			DeleteAfterInteracted: true,
-			Handler:               settingsTabHandler,
+			Data:    selectMenu,
+			Handler: settingsTabHandler,
 		})
 
-		interaction.RespondWithMessage(discord.Message{
+		interaction.EditOriginalInteraction(discord.Message{
 			Content: "What role should be given to the user that is warned too many times?",
 			Components: []discord.MessageComponent{
 				{
@@ -290,7 +323,7 @@ func ServerWarningSettingsSelectMenuHandler(interaction api.Interaction) error {
 				},
 			},
 			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
-		})
+		}, originalInteractionToken)
 	case 4:
 		modalTemplate.Title = "Minutes the user should keep the role for"
 		modalTemplate.Components[0].Components = append(modalTemplate.Components[0].Components, discord.MessageComponent{

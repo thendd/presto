@@ -2,11 +2,13 @@ package modals
 
 import (
 	"presto/internal/discord/api"
+	"slices"
 )
 
 type WithHandler struct {
 	Data    api.Modal
-	Handler func(api.Interaction) error
+	Handler func(api.Interaction, ...any) error
+	Args    []any
 }
 
 var modals = []WithHandler{}
@@ -20,5 +22,5 @@ func Append(modal WithHandler) {
 }
 
 func Remove(index int) {
-	modals = append(modals[:index], modals[index+1:]...)
+	modals = slices.Delete(modals, index, index+1)
 }

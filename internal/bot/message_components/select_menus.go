@@ -6,9 +6,9 @@ import (
 )
 
 type SelectMenuWithHandler struct {
-	Data                  discord.MessageComponent
-	DeleteAfterInteracted bool
-	Handler               func(api.Interaction) error
+	Data    discord.MessageComponent
+	Handler func(api.Interaction, ...any) error
+	Args    []any
 }
 
 var SelectMenus = []SelectMenuWithHandler{}

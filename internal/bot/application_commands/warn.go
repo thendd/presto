@@ -74,7 +74,7 @@ func WarnHandler(interaction api.Interaction) error {
 	return nil
 }
 
-func WarnModelHandler(interaction api.Interaction) error {
+func WarnModelHandler(interaction api.Interaction, _ ...any) error {
 	splittedCustomID := strings.Split(interaction.Data.Data.CustomID, "-")
 
 	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]

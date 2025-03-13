@@ -1,6 +1,8 @@
 package discord
 
-import "strings"
+import (
+	"strings"
+)
 
 type (
 	InteractionType         int
@@ -68,10 +70,18 @@ func JoinInteractionOptionsNames(options []InteractionCreatePayloadDataOption) s
 	}
 
 	appendNames(options)
+
 	return strings.Join(names, " ")
 }
 
 // Gets the "whole name" of an interaction, joining its base name, sub command names and sub command group names
 func GetInteractionName(interaction InteractionCreatePayloadData) string {
-	return interaction.Name + " " + JoinInteractionOptionsNames(interaction.Options)
+	optionsNames := JoinInteractionOptionsNames(interaction.Options)
+
+	if len(optionsNames) == 0 {
+		return interaction.Name
+	}
+
+	fullName := []string{interaction.Name, optionsNames}
+	return strings.Join(fullName, " ")
 }

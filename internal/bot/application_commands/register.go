@@ -9,14 +9,21 @@ import (
 	"presto/internal/discord/api"
 )
 
+type ApplicationCommandWithHandlerDataOptionChoice struct {
+	Name          string            `json:"name"`
+	Localizations map[string]string `json:"name_localizations"`
+	Value         string            `json:"value"`
+}
+
 type ApplicationCommandWithHandlerDataOption struct {
-	Type         discord.ApplicationCommandOptionType      `json:"type"`
-	Name         string                                    `json:"name"`
-	Description  string                                    `json:"description"`
-	Required     bool                                      `json:"required"`
-	Autocomplete bool                                      `json:"autocomplete"`
-	Options      []ApplicationCommandWithHandlerDataOption `json:"options,omitempty"`
-	Handler      func(api.Interaction) error               `json:"-"`
+	Type         discord.ApplicationCommandOptionType            `json:"type"`
+	Name         string                                          `json:"name"`
+	Description  string                                          `json:"description"`
+	Required     bool                                            `json:"required"`
+	Autocomplete bool                                            `json:"autocomplete"`
+	Options      []ApplicationCommandWithHandlerDataOption       `json:"options,omitempty"`
+	Choices      []ApplicationCommandWithHandlerDataOptionChoice `json:"choices,omitempty"`
+	Handler      func(api.Interaction) error                     `json:"-"`
 }
 
 type ApplicationCommandWithHandlerData struct {
