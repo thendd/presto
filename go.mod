@@ -3,11 +3,13 @@ module presto
 go 1.23.5
 
 require (
-	github.com/coder/websocket v1.8.12 // direct
 	github.com/joho/godotenv v1.5.1 // direct
 )
 
-require github.com/jackc/pgx/v5 v5.7.2
+require (
+	github.com/gorilla/websocket v1.5.3 // direct
+	github.com/jackc/pgx/v5 v5.7.2 // indirect
+)
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -18,6 +20,6 @@ require (
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	gorm.io/driver/postgres v1.5.11 // indirect
-	gorm.io/gorm v1.25.12 // indirect
+	gorm.io/driver/postgres v1.5.11 // direct
+	gorm.io/gorm v1.25.12 // direct
 )
