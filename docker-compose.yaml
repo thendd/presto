@@ -1,25 +1,27 @@
+networks:
+  presto_network:
+    driver: bridge
+
+volumes:
+  pg_data:
+
 services:
-  go:
+  presto:
     build: .
     container_name: bot
-    tty: true
+    networks:
+      - presto_network
     env_file:
-      - .env.docker
-    environment:
-      - PRESTO_ENVIRONMENT=development
-      - BASE_DISCORD_CDN_URL=https://cdn.discordapp.com
-      - BASE_DISCORD_API_URL=https://discord.com/api
-      - DISCORD_API_VERSION=10
-      - TESTING_GUILD_ID=${TESTING_GUILD_ID}
-      - DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID}
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-    volumes:
-      - .:/usr/presto
-  postgresql:
-    image: postgres:17.2
-    container_name: postgresql
+      - app.env
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:17.2-alpine
+    container_name: postgres
+    networks:
+      - presto_network
     env_file:
-      - .env
+      - pg.env
     restart: unless-stopped
     volumes:
-      - ./.data/postgresql:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
