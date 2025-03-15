@@ -22,7 +22,7 @@ func main() {
 	database.Connect()
 
 	gatewayData := api.GetGateway()
-	ws.Connnect(gatewayData.URL)
+	websocketConnection := ws.Connnect(gatewayData.URL)
 
 	// This is the workaround I found in order to satisfy the data
 	// that has to be sent to Discord on every heartbeat.
@@ -31,14 +31,15 @@ func main() {
 	var lastEvent ws.EventPayload
 	incomingEvents := make(chan ws.EventPayload)
 
-	events.SendIdentify()
+	events.SendIdentify(websocketConnection)
 	application_commands.Register()
-	go ws.OnEventReceive(incomingEvents)
+
+	go ws.OnEventReceive(incomingEvents, websocketConnection)
 
 	for {
 		select {
 		case <-time.After(40 * time.Second):
-			events.SendHeartbeat(lastEvent.SequenceNumber)
+			events.SendHeartbeat(lastEvent.SequenceNumber, websocketConnection)
 		case event := <-incomingEvents:
 			lastEvent = event
 

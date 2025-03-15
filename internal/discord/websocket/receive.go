@@ -1,9 +1,11 @@
 package ws
 
 import (
-	"context"
 	"encoding/json"
+	"io"
 	"presto/internal/log"
+
+	"github.com/gorilla/websocket"
 )
 
 type EventPayload struct {
@@ -13,14 +15,15 @@ type EventPayload struct {
 	Name           string `json:"t"`
 }
 
-func OnEventReceive(incomingEvents chan EventPayload) {
+func OnEventReceive(incomingEvents chan EventPayload, connection *websocket.Conn) {
 	log.Info("Started listening to WSS' messages")
 	for {
-		_, rawEvent, err := Connection.Read(context.Background())
+		_, reader, err := connection.NextReader()
 		if err != nil {
 			log.Error("Error while reading event: ", err)
 		}
 
+		rawEvent, err := io.ReadAll(reader)
 		var event EventPayload
 		json.Unmarshal(rawEvent, &event)
 

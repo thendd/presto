@@ -7,7 +7,7 @@ import (
 	"presto/internal/discord"
 	"presto/internal/discord/config"
 
-	"github.com/coder/websocket"
+	"github.com/gorilla/websocket"
 )
 
 const (
