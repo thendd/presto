@@ -1,4 +1,4 @@
-package events
+package ws
 
 import (
 	"slices"
@@ -8,13 +8,11 @@ import (
 	"presto/internal/bot/modals"
 	"presto/internal/discord"
 	"presto/internal/discord/api"
-	ws "presto/internal/discord/websocket"
 )
 
 func ReceiveInteractionCreate(interactionData discord.InteractionCreatePayload) {
 	interaction := api.Interaction{
-		Data:      interactionData,
-		Websocket: ws.Connection,
+		Data: interactionData,
 	}
 
 	switch interactionData.Type {

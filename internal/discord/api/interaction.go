@@ -6,8 +6,6 @@ import (
 
 	"presto/internal/discord"
 	"presto/internal/discord/config"
-
-	"github.com/gorilla/websocket"
 )
 
 const (
@@ -31,8 +29,7 @@ const (
 )
 
 type Interaction struct {
-	Data      discord.InteractionCreatePayload
-	Websocket *websocket.Conn
+	Data discord.InteractionCreatePayload
 }
 
 type RespondInteractionRequestBody struct {
