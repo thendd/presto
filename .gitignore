@@ -1,6 +1,4 @@
 # environment variables
-.env
-.env.docker
-
+*.env
 # postgresql data
 .data
