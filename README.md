@@ -31,9 +31,9 @@ Or with SSH:
 git clone git@github.com:aktshually/presto.git && cd presto
 ```
 
-2. Rename the `.env.example` file to `.env.docker`:
+2. Rename the `app.env.example` to `app.env` and `pg.env.example` to `.env`:
 ```bash
-mv ./.env.example ./.env.docker
+mv app.env.example app.env && mv pg.env.example pg.env
 ```
 
 3. Fill the empty data
