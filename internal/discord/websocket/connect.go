@@ -1,10 +1,10 @@
 package ws
 
 import (
-	"context"
+	"net/http"
 	"presto/internal/log"
 
-	"github.com/coder/websocket"
+	"github.com/gorilla/websocket"
 )
 
 var Connection *websocket.Conn
@@ -12,7 +12,8 @@ var Connection *websocket.Conn
 func Connnect(URL string) *websocket.Conn {
 	log.Info("Started connection to Discord's WSS")
 
-	ws, _, err := websocket.Dial(context.Background(), URL, nil)
+	dialer := websocket.Dialer{}
+	ws, _, err := dialer.Dial(URL, http.Header{})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -21,5 +22,5 @@ func Connnect(URL string) *websocket.Conn {
 
 	log.Info("Performed websocket handshake with Discord's WSS")
 
-	return Connection
+	return ws
 }

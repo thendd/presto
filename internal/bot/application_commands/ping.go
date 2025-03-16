@@ -1,7 +1,6 @@
 package application_commands
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -14,8 +13,8 @@ var Ping = NewSlashCommand("ping", "Have you ever heard about ping pong?", []App
 
 func PingHandler(interaction api.Interaction) error {
 	start := time.Now()
-	interaction.Websocket.Ping(context.Background())
-	latency := time.Since(start).Milliseconds()
+	// TODO: proper way of measuring the latency
+	latency := time.Since(start)
 
 	color := discord.EMBED_COLOR_RED
 
