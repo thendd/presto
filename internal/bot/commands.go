@@ -130,7 +130,6 @@ func NewMessageCommand(name string, handler InteractionHandler) ApplicationComma
 }
 
 func PushCommands(commands []ApplicationCommandWithHandler) {
-
 	log.Info("Started registering application commands")
 
 	mustDelete := []discord.ApplicationCommand{}
