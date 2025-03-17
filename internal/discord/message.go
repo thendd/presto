@@ -155,7 +155,7 @@ type Emoji struct {
 func (message *Message) Send() error {
 	response, statusCode := MakeRequest("/channels/"+message.ChannelID+"/messages", http.MethodPost, message)
 	if statusCode != http.StatusCreated {
-		log.Error("Could not send message: expected status code 201 but received %d. The API response was:\n%s", statusCode, string(response))
+		log.Errorf("Could not send message: expected status code 201 but received %d. The API response was:\n%s", statusCode, string(response))
 		return errors.New(string(response))
 	}
 

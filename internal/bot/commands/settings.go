@@ -32,7 +32,7 @@ func GuildSettingsHandler(context bot.Context) error {
 	}
 
 	if err := database.Connection.First(&guild).Error; err != nil {
-		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the guild data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, err)
+		log.Errorf("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the guild data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, err)
 		return errors.UnknwonError
 	}
 

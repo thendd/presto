@@ -81,7 +81,7 @@ func WarnModelHandler(context bot.Context, _ ...any) error {
 	}
 
 	if result := database.Connection.First(&guildData); result.Error != nil {
-		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, result.Error)
+		log.Errorf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 
@@ -90,7 +90,7 @@ func WarnModelHandler(context bot.Context, _ ...any) error {
 		UserId:  targetId,
 	}
 	if result := database.Connection.FirstOrCreate(&target); result.Error != nil {
-		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, result.Error)
+		log.Errorf("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 

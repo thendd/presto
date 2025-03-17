@@ -149,7 +149,7 @@ func PushCommands(commands []ApplicationCommandWithHandler) {
 	case "development":
 		applicationCommands = discord.GetTestingGuildApplicationCommands()
 	default:
-		log.Fatal("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
+		log.Fatalf("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
 	}
 
 	for _, applicationCommand := range applicationCommands {
@@ -171,22 +171,22 @@ func PushCommands(commands []ApplicationCommandWithHandler) {
 	case "production":
 		for _, applicationCommand := range mustDelete {
 			discord.DeleteGlobalApplicationCommand(applicationCommand.ID.(string))
-			log.Info("\"%s\" command was deleted globally and successfully", applicationCommand.Name)
+			log.Infof("\"%s\" command was deleted globally and successfully", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
 			discord.CreateGlobalApplicationCommand(applicationCommand)
-			log.Info("\"%s\" command was created/updated globaly successfully", applicationCommand.Name)
+			log.Infof("\"%s\" command was created/updated globaly successfully", applicationCommand.Name)
 		}
 	case "development":
 		for _, applicationCommand := range mustDelete {
 			discord.DeleteTestingGuildApplicationCommand(applicationCommand.ID.(string))
-			log.Info("\"%s\" command was deleted successfully in the testing guild", applicationCommand.Name)
+			log.Infof("\"%s\" command was deleted successfully in the testing guild", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
 			discord.CreateTestingGuildApplicationCommand(applicationCommand)
-			log.Info("\"%s\" command was created/updated successfully in the testing guild", applicationCommand.Name)
+			log.Infof("\"%s\" command was created/updated successfully in the testing guild", applicationCommand.Name)
 		}
 	}
 

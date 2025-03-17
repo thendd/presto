@@ -93,7 +93,7 @@ func (guild *Guild) GetIconURL() string {
 func BanMember(guildID string, memberID string) error {
 	response, statusCode := MakeRequest("/guilds/"+guildID+"/bans/"+memberID, http.MethodPut, nil)
 	if statusCode != http.StatusNoContent {
-		log.Error("Could not ban user %s from guild %s: expected status code 204 but got %d. The API response was:\n%s", statusCode, string(response))
+		log.Errorf("Could not ban memberId %s from guild %s: expected status code 204 but got %d. The API response was:\n%s", memberID, guildID, statusCode, string(response))
 		return errors.New(fmt.Sprintf("Could not ban user %s from guild %s", memberID, guildID))
 	}
 
