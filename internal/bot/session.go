@@ -243,6 +243,8 @@ func (session *Session) Reconnect() error {
 }
 
 func NewSession(commands []ApplicationCommandWithHandler) *Session {
+	PushCommands(commands)
+
 	return &Session{
 		RegisteredCommands: commands,
 	}
