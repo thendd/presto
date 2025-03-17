@@ -1,12 +1,10 @@
-package application_commands
+package bot
 
 import (
 	"os"
+	"presto/internal/discord"
 	"presto/internal/log"
 	"slices"
-
-	"presto/internal/discord"
-	"presto/internal/discord/api"
 )
 
 type ApplicationCommandWithHandlerDataOptionChoice struct {
@@ -23,7 +21,7 @@ type ApplicationCommandWithHandlerDataOption struct {
 	Autocomplete bool                                            `json:"autocomplete"`
 	Options      []ApplicationCommandWithHandlerDataOption       `json:"options,omitempty"`
 	Choices      []ApplicationCommandWithHandlerDataOptionChoice `json:"choices,omitempty"`
-	Handler      func(api.Interaction) error                     `json:"-"`
+	Handler      InteractionHandler                              `json:"-"`
 }
 
 type ApplicationCommandWithHandlerData struct {
@@ -36,7 +34,7 @@ type ApplicationCommandWithHandlerData struct {
 
 type ApplicationCommandWithHandler struct {
 	Data    ApplicationCommandWithHandlerData
-	Handler func(api.Interaction) error
+	Handler InteractionHandler
 }
 
 func (applicationCommandWithHandler ApplicationCommandWithHandler) ToApplicationCommand() discord.ApplicationCommand {
@@ -80,7 +78,7 @@ func (command *SlashCommand) AddSubCommandGroup(name string) *SlashCommand {
 	return command
 }
 
-func (command *SlashCommand) AddSubCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler func(api.Interaction) error) *SlashCommand {
+func (command *SlashCommand) AddSubCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler InteractionHandler) *SlashCommand {
 	command.Data.Options = append(command.Data.Options, ApplicationCommandWithHandlerDataOption{
 		Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND,
 		Name:        name,
@@ -99,7 +97,7 @@ func (command *SlashCommand) ToApplicationCommand() ApplicationCommandWithHandle
 	}
 }
 
-func NewSlashCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler func(api.Interaction) error) *SlashCommand {
+func NewSlashCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler InteractionHandler) *SlashCommand {
 	return &SlashCommand{
 		Handler: handler,
 		Data: ApplicationCommandWithHandlerData{
@@ -111,7 +109,7 @@ func NewSlashCommand(name, description string, options []ApplicationCommandWithH
 	}
 }
 
-func NewUserCommand(name string, handler func(api.Interaction) error) ApplicationCommandWithHandler {
+func NewUserCommand(name string, handler InteractionHandler) ApplicationCommandWithHandler {
 	return ApplicationCommandWithHandler{
 		Handler: handler,
 		Data: ApplicationCommandWithHandlerData{
@@ -121,7 +119,7 @@ func NewUserCommand(name string, handler func(api.Interaction) error) Applicatio
 	}
 }
 
-func NewMessageCommand(name string, handler func(api.Interaction) error) ApplicationCommandWithHandler {
+func NewMessageCommand(name string, handler InteractionHandler) ApplicationCommandWithHandler {
 	return ApplicationCommandWithHandler{
 		Handler: handler,
 		Data: ApplicationCommandWithHandlerData{
@@ -131,15 +129,8 @@ func NewMessageCommand(name string, handler func(api.Interaction) error) Applica
 	}
 }
 
-var Local = []ApplicationCommandWithHandler{
-	Ping,
-	WarnUserCommand,
-	WarnSlashCommand,
-	WarnMessageCommand,
-	GuildSettings,
-}
+func PushCommands(commands []ApplicationCommandWithHandler) {
 
-func Register() {
 	log.Info("Started registering application commands")
 
 	mustDelete := []discord.ApplicationCommand{}
@@ -147,7 +138,7 @@ func Register() {
 
 	var localApplicationCommands []discord.ApplicationCommand
 
-	for _, localApplicationCommand := range Local {
+	for _, localApplicationCommand := range commands {
 		localApplicationCommands = append(localApplicationCommands, localApplicationCommand.ToApplicationCommand())
 	}
 
@@ -155,9 +146,9 @@ func Register() {
 
 	switch os.Getenv("PRESTO_ENVIRONMENT") {
 	case "production":
-		applicationCommands = api.GetGlobalApplicationCommands()
+		applicationCommands = discord.GetGlobalApplicationCommands()
 	case "development":
-		applicationCommands = api.GetTestingGuildApplicationCommands()
+		applicationCommands = discord.GetTestingGuildApplicationCommands()
 	default:
 		log.Fatal("Unknown \"PRESTO_ENVIRONMENT\" value: %v", os.Getenv("PRESTO_ENVIRONMENT"))
 	}
@@ -180,22 +171,22 @@ func Register() {
 	switch os.Getenv("PRESTO_ENVIRONMENT") {
 	case "production":
 		for _, applicationCommand := range mustDelete {
-			api.DeleteGlobalApplicationCommand(applicationCommand.ID.(string))
+			discord.DeleteGlobalApplicationCommand(applicationCommand.ID.(string))
 			log.Info("\"%s\" command was deleted globally and successfully", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
-			api.CreateGlobalApplicationCommand(applicationCommand)
+			discord.CreateGlobalApplicationCommand(applicationCommand)
 			log.Info("\"%s\" command was created/updated globaly successfully", applicationCommand.Name)
 		}
 	case "development":
 		for _, applicationCommand := range mustDelete {
-			api.DeleteTestingGuildApplicationCommand(applicationCommand.ID.(string))
+			discord.DeleteTestingGuildApplicationCommand(applicationCommand.ID.(string))
 			log.Info("\"%s\" command was deleted successfully in the testing guild", applicationCommand.Name)
 		}
 
 		for _, applicationCommand := range mustCreate {
-			api.CreateTestingGuildApplicationCommand(applicationCommand)
+			discord.CreateTestingGuildApplicationCommand(applicationCommand)
 			log.Info("\"%s\" command was created/updated successfully in the testing guild", applicationCommand.Name)
 		}
 	}

@@ -3,16 +3,25 @@ package main
 import (
 	"os"
 	"os/signal"
+	"presto/internal/bot"
+	"presto/internal/bot/commands"
 	"presto/internal/config"
 	"presto/internal/database"
-	ws "presto/internal/discord/websocket"
 )
 
 func main() {
 	config.LoadEnvironmentVariables()
 	database.Connect()
 
-	session := ws.NewSession()
+	var localApplicationCommands = []bot.ApplicationCommandWithHandler{
+		commands.Ping,
+		commands.WarnUserCommand,
+		commands.WarnSlashCommand,
+		commands.WarnMessageCommand,
+		commands.GuildSettings,
+	}
+
+	session := bot.NewSession(localApplicationCommands)
 	err := session.Open()
 	if err != nil {
 		panic(err)

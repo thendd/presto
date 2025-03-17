@@ -1,13 +1,12 @@
-package api
+package discord
 
 import (
 	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
+	"presto/internal/config"
 	"presto/internal/log"
-
-	"presto/internal/discord/config"
 )
 
 // TODO: using a client in the way I'm using right now might lead into some problems in the future
@@ -27,7 +26,7 @@ func MakeRequest(endpoint string, method string, body any) ([]byte, int) {
 
 	// Ignore error just because (documentatio doesn't say anything about the cases in
 	// which an error is returned).
-	request, _ := http.NewRequest(method, config.API_BASE_URL+endpoint, &buffer)
+	request, _ := http.NewRequest(method, config.DISCORD_API_BASE_URL+endpoint, &buffer)
 
 	request.Header.Add("Authorization", "Bot "+config.DISCORD_BOT_TOKEN)
 	request.Header.Add("Content-Type", "application/json")

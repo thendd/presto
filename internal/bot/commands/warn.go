@@ -1,23 +1,20 @@
-package application_commands
+package commands
 
 import (
 	"fmt"
+	"presto/internal/bot"
 	"presto/internal/bot/errors"
 	"presto/internal/log"
 	"strings"
 	"time"
 
-	"presto/internal/bot/modals"
 	"presto/internal/database"
 	"presto/internal/discord"
-	"presto/internal/discord/api"
-	"presto/internal/discord/api/cache"
-	"presto/internal/discord/cdn"
 )
 
 var (
-	WarnUserCommand  = NewUserCommand("Warn", WarnHandler)
-	WarnSlashCommand = NewSlashCommand("warn", "Sends a warning to the user", []ApplicationCommandWithHandlerDataOption{
+	WarnUserCommand  = bot.NewUserCommand("Warn", WarnHandler)
+	WarnSlashCommand = bot.NewSlashCommand("warn", "Sends a warning to the user", []bot.ApplicationCommandWithHandlerDataOption{
 		{
 			Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_USER,
 			Name:        "user",
@@ -25,28 +22,28 @@ var (
 			Required:    true,
 		},
 	}, WarnHandler).ToApplicationCommand()
-	WarnMessageCommand = NewMessageCommand("Warn", WarnHandler)
+	WarnMessageCommand = bot.NewMessageCommand("Warn", WarnHandler)
 )
 
-func WarnHandler(interaction api.Interaction) error {
+func WarnHandler(context bot.Context) error {
 	textInputLabel := "Reason"
 	isTextInputRequired := true
-	modalCustomId := fmt.Sprintf("%d-%s-", time.Now().UnixMilli(), interaction.Data.Member.User.ID)
+	modalCustomId := fmt.Sprintf("%d-%s-", time.Now().UnixMilli(), context.Interaction.Data.Member.User.ID)
 
-	switch interaction.Data.Data.Type {
+	switch context.Interaction.Data.Data.Type {
 	case discord.APPLICATION_COMMAND_TYPE_CHAT_INPUT:
-		modalCustomId += interaction.Data.Data.Options[0].Value.(string)
+		modalCustomId += context.Interaction.Data.Data.Options[0].Value.(string)
 	case discord.APPLICATION_COMMAND_TYPE_USER:
-		modalCustomId += interaction.Data.Data.TargetID
+		modalCustomId += context.Interaction.Data.Data.TargetID
 	case discord.APPLICATION_COMMAND_TYPE_MESSAGE:
-		message := interaction.Data.Data.Resolved.Messages[interaction.Data.Data.TargetID]
+		message := context.Interaction.Data.Data.Resolved.Messages[context.Interaction.Data.Data.TargetID]
 		modalCustomId += message.Author.ID + "-" + message.ChannelID + "-" + message.ID
 		textInputLabel = "Additional info"
 		isTextInputRequired = false
 	}
 
-	modal := modals.WithHandler{
-		Data: api.Modal{
+	modal := bot.ModalWithHandler{
+		Data: discord.Modal{
 			CustomID: modalCustomId,
 			Title:    "Warning details",
 			Components: []discord.MessageComponent{
@@ -68,49 +65,49 @@ func WarnHandler(interaction api.Interaction) error {
 		Handler: WarnModelHandler,
 	}
 
-	modals.Append(modal)
-	interaction.RespondWithModal(modal.Data)
+	context.Session.Cache.Modals.Append(modal)
+	context.Interaction.RespondWithModal(modal.Data)
 
 	return nil
 }
 
-func WarnModelHandler(interaction api.Interaction, _ ...any) error {
-	splittedCustomID := strings.Split(interaction.Data.Data.CustomID, "-")
+func WarnModelHandler(context bot.Context, _ ...any) error {
+	splittedCustomID := strings.Split(context.Interaction.Data.Data.CustomID, "-")
 
-	targetId := strings.Split(interaction.Data.Data.CustomID, "-")[2]
+	targetId := strings.Split(context.Interaction.Data.Data.CustomID, "-")[2]
 
 	guildData := &database.Guild{
-		ID: interaction.Data.GuildID,
+		ID: context.Interaction.Data.GuildID,
 	}
 
 	if result := database.Connection.First(&guildData); result.Error != nil {
-		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the guild data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 
 	target := database.GuildMember{
-		GuildId: interaction.Data.GuildID,
+		GuildId: context.Interaction.Data.GuildID,
 		UserId:  targetId,
 	}
 	if result := database.Connection.FirstOrCreate(&target); result.Error != nil {
-		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", interaction.Data.User.ID, interaction.Data.GuildID, result.Error)
+		log.Error("There was an error when executing command \"warn\" invoked by the user %s at the guild %s when fetching the target data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, result.Error)
 		return errors.UnknwonError
 	}
 
 	remainingWarnings := guildData.MaxWarningsPerUser - target.Warnings - 1
 
-	dmChannel := cache.GetDMChannelByRecipientID(targetId)
-	if dmChannel.ID == "" {
-		dmChannel = api.CreateDM(targetId)
+	dmChannel, err := context.Session.Cache.DMChannels.GetByRecipientID(targetId)
+	if err != nil {
+		dmChannel = discord.CreateDM(targetId)
 	}
 
-	guild := cache.GetGuildById(interaction.Data.GuildID)
-	if guild.Name == "" {
-		guild = api.GetGuildById(interaction.Data.GuildID)
+	guild, err := context.Session.Cache.Guilds.GetByID(context.Interaction.Data.GuildID)
+	if err != nil {
+		guild = discord.GetGuildById(context.Interaction.Data.GuildID)
 	}
 
 	if remainingWarnings < 0 {
-		interaction.RespondWithMessage(discord.Message{
+		context.Interaction.RespondWithMessage(discord.Message{
 			Embeds: []discord.Embed{
 				{
 					Description: "As the user has already reached the limit of warnings, they will be banned.",
@@ -120,9 +117,9 @@ func WarnModelHandler(interaction api.Interaction, _ ...any) error {
 			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 		})
 
-		api.BanUser(guildData.ID, targetId)
+		discord.BanMember(guildData.ID, targetId)
 
-		api.SendMessage(discord.Message{
+		message := discord.Message{
 			ChannelID: dmChannel.ID,
 			Embeds: []discord.Embed{
 				{
@@ -130,12 +127,14 @@ func WarnModelHandler(interaction api.Interaction, _ ...any) error {
 					Color:       discord.EMBED_COLOR_RED,
 				},
 			},
-		})
+		}
+
+		message.Send()
 
 		return nil
 	}
 
-	interaction.RespondWithMessage(discord.Message{
+	context.Interaction.RespondWithMessage(discord.Message{
 		Embeds: []discord.Embed{
 			{
 				Description: fmt.Sprintf("Warning was sent successfully. The user will receive a message in their DM with the reason of the warning. They still have **%d warnings left**.", remainingWarnings),
@@ -147,35 +146,36 @@ func WarnModelHandler(interaction api.Interaction, _ ...any) error {
 
 	database.Connection.Save(&database.GuildMember{
 		UserId:   targetId,
-		GuildId:  interaction.Data.GuildID,
+		GuildId:  context.Interaction.Data.GuildID,
 		Warnings: target.Warnings + 1,
 	})
 
 	warningEmbedDescription := fmt.Sprintf("You were warned in the server **%s** ", guild.Name)
-	if interaction.Data.Data.Components[0].Components[0].Value != "" {
-		warningEmbedDescription += fmt.Sprintf("with the following reason: **%s**.", interaction.Data.Data.Components[0].Components[0].Value)
+	if context.Interaction.Data.Data.Components[0].Components[0].Value != "" {
+		warningEmbedDescription += fmt.Sprintf("with the following reason: **%s**.", context.Interaction.Data.Data.Components[0].Components[0].Value)
 	} else {
 		warningEmbedDescription += "but no reason was given."
 	}
 
 	if len(splittedCustomID) == 5 {
-		warningEmbedDescription += fmt.Sprintf("**[This message](%s)** was attached to the warning.", fmt.Sprintf("https://discord.com/channels/%s/%s/%s", interaction.Data.GuildID, splittedCustomID[3], splittedCustomID[4]))
+		warningEmbedDescription += fmt.Sprintf("**[This message](%s)** was attached to the warning.", fmt.Sprintf("https://discord.com/channels/%s/%s/%s", context.Interaction.Data.GuildID, splittedCustomID[3], splittedCustomID[4]))
 	}
 
 	warningEmbed := discord.Embed{
 		Description: warningEmbedDescription,
 		Color:       discord.EMBED_COLOR_YELLOW,
 		Image: &discord.EmbedImage{
-			URL:    cdn.GetGuildIconURL(guild.ID, guild.Icon),
+			URL:    context.Interaction.Data.Guild.GetIconURL(),
 			Height: 100,
 			Width:  100,
 		},
 	}
 
-	api.SendMessage(discord.Message{
+	message := discord.Message{
 		ChannelID: dmChannel.ID,
 		Embeds:    []discord.Embed{warningEmbed},
-	})
+	}
+	message.Send()
 
 	return nil
 }

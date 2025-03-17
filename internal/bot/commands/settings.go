@@ -1,13 +1,11 @@
-package application_commands
+package commands
 
 import (
 	"fmt"
+	"presto/internal/bot"
 	"presto/internal/bot/errors"
-	"presto/internal/bot/message_components"
-	"presto/internal/bot/modals"
 	"presto/internal/database"
 	"presto/internal/discord"
-	"presto/internal/discord/api"
 	"presto/internal/log"
 	"strconv"
 	"time"
@@ -19,28 +17,28 @@ type SelectMenuInput struct {
 	TabName       string
 }
 
-var GuildSettings = NewSlashCommand(
+var GuildSettings = bot.NewSlashCommand(
 	"settings",
 	"Anything you want to customize",
-	[]ApplicationCommandWithHandlerDataOption{},
-	func(i api.Interaction) error { return nil },
+	[]bot.ApplicationCommandWithHandlerDataOption{},
+	func(i bot.Context) error { return nil },
 ).
-	AddSubCommand("server", "Settings for your server", []ApplicationCommandWithHandlerDataOption{}, GuildSettingsHandler).
+	AddSubCommand("server", "Settings for your server", []bot.ApplicationCommandWithHandlerDataOption{}, GuildSettingsHandler).
 	ToApplicationCommand()
 
-func GuildSettingsHandler(interaction api.Interaction) error {
+func GuildSettingsHandler(context bot.Context) error {
 	guild := database.Guild{
-		ID: interaction.Data.GuildID,
+		ID: context.Interaction.Data.GuildID,
 	}
 
 	if err := database.Connection.First(&guild).Error; err != nil {
-		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the guild data: %s", interaction.Data.User.ID, interaction.Data.GuildID, err)
+		log.Error("There was an error when executing command \"settings\" invoked by the user %s at the guild %s when fetching the guild data: %s", context.Interaction.Data.User.ID, context.Interaction.Data.GuildID, err)
 		return errors.UnknwonError
 	}
 
 	selectMenu := discord.MessageComponent{
 		Type:        discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
-		CustomID:    strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.Member.User.ID,
+		CustomID:    strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.Member.User.ID,
 		Placeholder: "What do you want to configure?",
 		Options: []discord.SelectOption{
 			{
@@ -74,13 +72,13 @@ func GuildSettingsHandler(interaction api.Interaction) error {
 		})
 	}
 
-	message_components.SelectMenus = append(message_components.SelectMenus, message_components.SelectMenuWithHandler{
+	context.Session.Cache.SelectMenus.Append(bot.SelectMenuWithHandler{
 		Data:    selectMenu,
-		Handler: ServerSettingsSelectMenuHandler,
-		Args:    []any{guild, interaction.Data.Token},
+		Handler: GuildSettingsSelectMenuHandler,
+		Args:    []any{guild, context.Interaction.Data.Token},
 	})
 
-	err := interaction.RespondWithMessage(discord.Message{
+	err := context.Interaction.RespondWithMessage(discord.Message{
 		Components: []discord.MessageComponent{
 			{
 				Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
@@ -98,13 +96,13 @@ func GuildSettingsHandler(interaction api.Interaction) error {
 	return nil
 }
 
-func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) error {
+func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 	guild := args[0].(database.Guild)
 	originalInteractionToken := args[1].(string)
-	settingsTab, _ := strconv.Atoi(interaction.Data.Data.Values[0])
+	settingsTab, _ := strconv.Atoi(context.Interaction.Data.Data.Values[0])
 
-	modalTemplate := api.Modal{
-		CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.Member.User.ID,
+	modalTemplate := discord.Modal{
+		CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.Member.User.ID,
 		Components: []discord.MessageComponent{
 			{
 				Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
@@ -164,7 +162,7 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 		{
 			TabName: "quantity of minutes the member should keep the role for when they get too many warnings",
 			Conditions: func(value string) (any, error) {
-				newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(interaction.Data.Data.Components[0].Components[0].Value)
+				newMinutesUserShouldKeepRoleFor, err := strconv.Atoi(context.Interaction.Data.Data.Components[0].Components[0].Value)
 				if err != nil || newMinutesUserShouldKeepRoleFor < 1 {
 					return 0, errors.New("Your answer must be a positive, whole number")
 				}
@@ -177,22 +175,22 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 		},
 	}
 
-	var settingsTabHandler func(interaction api.Interaction, args ...any) error
-	settingsTabHandler = func(interaction api.Interaction, _ ...any) error {
+	var settingsTabHandler func(context bot.Context, args ...any) error
+	settingsTabHandler = func(context bot.Context, _ ...any) error {
 		guildToUpdate := database.Guild{
-			ID: interaction.Data.GuildID,
+			ID: context.Interaction.Data.GuildID,
 		}
 
 		var selectedTab string
-		if len(interaction.Data.Data.Values) != 0 {
-			selectedTab = interaction.Data.Data.Values[0]
+		if len(context.Interaction.Data.Data.Values) != 0 {
+			selectedTab = context.Interaction.Data.Data.Values[0]
 		} else {
-			selectedTab = interaction.Data.Data.Components[0].Components[0].Value
+			selectedTab = context.Interaction.Data.Data.Components[0].Components[0].Value
 		}
 
 		toCommit, err := inputs[settingsTab].Conditions(selectedTab)
 		if err != nil {
-			interaction.EditOriginalInteraction(discord.Message{
+			context.Interaction.EditOriginalInteraction(discord.Message{
 				Embeds: []discord.Embed{
 					{
 						Description: err.Error(),
@@ -211,7 +209,7 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 			return errors.UnknwonError
 		}
 
-		err = interaction.EditOriginalInteraction(discord.Message{
+		err = context.Interaction.EditOriginalInteraction(discord.Message{
 			Embeds: []discord.Embed{
 				{
 					Description: fmt.Sprintf("The **%s** was updated successfully.", inputs[settingsTab].TabName),
@@ -239,16 +237,16 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 			MaxLength:   2,
 		})
 
-		modals.Append(modals.WithHandler{
+		context.Session.Cache.Modals.Append(bot.ModalWithHandler{
 			Data:    modalTemplate,
 			Handler: settingsTabHandler,
 		})
 
-		interaction.RespondWithModal(modalTemplate)
+		context.Interaction.RespondWithModal(modalTemplate)
 	case 1:
 		selectMenu := discord.MessageComponent{
 			Type:     discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
-			CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.ChannelID + "-" + interaction.Data.Member.User.ID,
+			CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.ChannelID + "-" + context.Interaction.Data.Member.User.ID,
 			Options: []discord.SelectOption{
 				{
 					Label:       "Ban",
@@ -268,12 +266,12 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 			},
 		}
 
-		message_components.SelectMenus = append(message_components.SelectMenus, message_components.SelectMenuWithHandler{
+		context.Session.Cache.SelectMenus.Append(bot.SelectMenuWithHandler{
 			Data:    selectMenu,
 			Handler: settingsTabHandler,
 		})
 
-		interaction.EditOriginalInteraction(discord.Message{
+		context.Interaction.EditOriginalInteraction(discord.Message{
 			Content: "What should I do when user is warned too many times?",
 			Components: []discord.MessageComponent{
 				{
@@ -297,24 +295,24 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 			MaxLength:   5,
 		})
 
-		modals.Append(modals.WithHandler{
+		context.Session.Cache.Modals.Append(bot.ModalWithHandler{
 			Data:    modalTemplate,
 			Handler: settingsTabHandler,
 		})
 
-		interaction.RespondWithModal(modalTemplate)
+		context.Interaction.RespondWithModal(modalTemplate)
 	case 3:
 		selectMenu := discord.MessageComponent{
 			Type:     discord.MESSAGE_COMPONENT_TYPE_ROLE_SELECT,
-			CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + interaction.Data.GuildID + "-" + interaction.Data.ChannelID + "-" + interaction.Data.Member.User.ID,
+			CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.ChannelID + "-" + context.Interaction.Data.Member.User.ID,
 		}
 
-		message_components.SelectMenus = append(message_components.SelectMenus, message_components.SelectMenuWithHandler{
+		context.Session.Cache.SelectMenus.Append(bot.SelectMenuWithHandler{
 			Data:    selectMenu,
 			Handler: settingsTabHandler,
 		})
 
-		interaction.EditOriginalInteraction(discord.Message{
+		context.Interaction.EditOriginalInteraction(discord.Message{
 			Content: "What role should be given to the user that is warned too many times?",
 			Components: []discord.MessageComponent{
 				{
@@ -338,12 +336,12 @@ func ServerSettingsSelectMenuHandler(interaction api.Interaction, args ...any) e
 			MaxLength:   5,
 		})
 
-		modals.Append(modals.WithHandler{
+		context.Session.Cache.Modals.Append(bot.ModalWithHandler{
 			Data:    modalTemplate,
 			Handler: settingsTabHandler,
 		})
 
-		interaction.RespondWithModal(modalTemplate)
+		context.Interaction.RespondWithModal(modalTemplate)
 	}
 
 	return nil

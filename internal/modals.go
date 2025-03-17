@@ -1,13 +1,13 @@
 package modals
 
 import (
-	"presto/internal/discord/api"
+	"presto/internal/discord"
 	"slices"
 )
 
 type WithHandler struct {
-	Data    api.Modal
-	Handler func(api.Interaction, ...any) error
+	Data    discord.Modal
+	Handler func(discord.Interaction, ...any) error
 	Args    []any
 }
 

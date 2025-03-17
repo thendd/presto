@@ -1,6 +1,4 @@
-package ws
-
-import "presto/internal/discord"
+package discord
 
 const (
 	READY              = "READY"
@@ -35,7 +33,7 @@ type IdentifyEventData struct {
 	Compress       bool                        `json:"compress,omitempty"`
 	LargeThreshold int                         `json:"large_threshold,omitempty"`
 	Shard          *[2]int                     `json:"shard,omitempty"`
-	Presence       *discord.UpdatePresence     `json:"presence,omitempty"`
+	Presence       *UpdatePresence             `json:"presence,omitempty"`
 	Intents        int                         `json:"intents"`
 }
 
