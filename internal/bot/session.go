@@ -1,13 +1,12 @@
-package ws
+package bot
 
 import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"presto/internal/config"
 	"presto/internal/database"
 	"presto/internal/discord"
-	"presto/internal/discord/api"
-	"presto/internal/discord/config"
 	"presto/internal/log"
 	"time"
 
@@ -22,7 +21,8 @@ type WebsocketEventPayload struct {
 	Name           string `json:"t"`
 }
 
-// Represents a connection with Discord's Gateway
+// A session that includes the current connection with Discord's gateway, data about latency and heartbeats,
+// as well as the registered commands. It also handles the events received from the websocket.
 type Session struct {
 	Dialer *websocket.Dialer
 
@@ -45,7 +45,11 @@ type Session struct {
 	LastHeartbeat time.Time
 
 	// The latency between Discord's gateway and the bot
-	Latency int64
+	Latency time.Duration
+
+	Cache Cache
+
+	RegisteredCommands []ApplicationCommandWithHandler
 }
 
 // Opens a connection with Discord's gateway following the documentation
@@ -55,7 +59,7 @@ func (session *Session) Open() error {
 	var err error
 
 	log.Info("Started fetching gateway data")
-	gatewayData := api.GetGateway()
+	gatewayData := discord.GetGateway()
 	session.GatewayURL = gatewayData.URL
 	log.Info("Fetched gateway data successfully")
 
@@ -75,6 +79,8 @@ func (session *Session) Open() error {
 	}
 	log.Info("Established a connection with Discord's websocket successfully")
 
+	session.Cache = Cache{}
+
 	log.Info("Started listening for \"Hello\" event")
 	_, response, err := session.Connection.ReadMessage()
 	if err != nil {
@@ -85,7 +91,7 @@ func (session *Session) Open() error {
 	var helloEventPayload WebsocketEventPayload
 	json.Unmarshal(response, &helloEventPayload)
 
-	if helloEventPayload.Opcode != HELLO_EVENT_OPCODE {
+	if helloEventPayload.Opcode != discord.HELLO_EVENT_OPCODE {
 		log.Error("The event received after establishing a connection to Discord's gateway was not \"Hello\" (opcode 10), which goes against the documentation. Instead, received opcode %d", helloEventPayload.Opcode)
 		return errors.New("event received is not \"Hello\"")
 	}
@@ -97,7 +103,7 @@ func (session *Session) Open() error {
 		return errors.New("error when marshalizing \"Hello\" event")
 	}
 
-	var helloEventData HelloEventData
+	var helloEventData discord.HelloEventData
 	err = json.Unmarshal(rawHelloEventData, &helloEventData)
 	if err != nil {
 		log.Error("There was an error when unmarshalizing the \"Hello\" event data")
@@ -111,8 +117,8 @@ func (session *Session) Open() error {
 
 	log.Info("Started sending \"Identify\" event")
 	err = session.Connection.WriteJSON(WebsocketEventPayload{
-		Opcode: IDENTIFY_EVENT_OPCODE,
-		Data: IdentifyEventData{
+		Opcode: discord.IDENTIFY_EVENT_OPCODE,
+		Data: discord.IdentifyEventData{
 			Token:   config.DISCORD_BOT_TOKEN,
 			Intents: 1, // Currently using GUILDS intent
 		},
@@ -135,7 +141,7 @@ func (session *Session) SendIndividualHeartbeat() {
 	log.Info("Started heartbeat")
 	if session.LastSequenceNumber == 0 {
 		session.Connection.WriteJSON(WebsocketEventPayload{
-			Opcode: HEARTBEAT_EVENT_OPCODE,
+			Opcode: discord.HEARTBEAT_EVENT_OPCODE,
 			Data:   session.LastSequenceNumber,
 		})
 		log.Info("As the application has not received any events, the data sent in the hearbeat is null")
@@ -143,7 +149,7 @@ func (session *Session) SendIndividualHeartbeat() {
 	}
 
 	session.Connection.WriteJSON(WebsocketEventPayload{
-		Opcode: HEARTBEAT_EVENT_OPCODE,
+		Opcode: discord.HEARTBEAT_EVENT_OPCODE,
 	})
 	log.Info("Sent heartbeat with the last sequence number %d", session.LastSequenceNumber)
 
@@ -175,25 +181,26 @@ func (session *Session) Listen(connection *websocket.Conn) {
 		}
 
 		switch event.Opcode {
-		case HEARTBEAT_ACK_EVENT_OPCODE:
-			session.Latency = int64(time.Since(session.LastHeartbeat))
-			log.Info("A heartbeat ACK was received and the latency is %dms", session.Latency)
-		case RECONNECT_EVENT_OPCODE:
+		case discord.HEARTBEAT_ACK_EVENT_OPCODE:
+			session.Latency = time.Since(session.LastHeartbeat)
+			log.Info("A heartbeat ACK was received and the latency is %dms", session.Latency.Milliseconds())
+		case discord.RECONNECT_EVENT_OPCODE:
 			session.Close(websocket.CloseNormalClosure)
 			session.Reconnect()
-		case HEARTBEAT_EVENT_OPCODE:
+		case discord.HEARTBEAT_EVENT_OPCODE:
+			log.Info("A heartbeat event of opcode 1 was received from Discord, therefore a heartbeat will be sent immediately")
 			session.SendIndividualHeartbeat()
-		case DISPATCH_EVENT_OPCODE:
+		case discord.DISPATCH_EVENT_OPCODE:
 			rawEventData, _ := json.Marshal(event.Data)
 			switch event.Name {
-			case READY:
+			case discord.READY:
 				log.Info("Presto is ready to go")
-			case INTERACTION_CREATE:
+			case discord.INTERACTION_CREATE:
 				var interactionData discord.InteractionCreatePayload
 				json.Unmarshal(rawEventData, &interactionData)
 
-				ReceiveInteractionCreate(interactionData)
-			case GUILD_CREATE:
+				session.HandleInteractionCreateEvent(interactionData)
+			case discord.GUILD_CREATE:
 				// Even though an unavailable guild object might be sent,
 				// it would still have the id property, which is the only one
 				// that will be used
@@ -235,6 +242,8 @@ func (session *Session) Reconnect() error {
 	return session.Open()
 }
 
-func NewSession() *Session {
-	return &Session{}
+func NewSession(commands []ApplicationCommandWithHandler) *Session {
+	return &Session{
+		RegisteredCommands: commands,
+	}
 }

@@ -1,20 +1,16 @@
-package application_commands
+package commands
 
 import (
 	"fmt"
-	"time"
-
+	"presto/internal/bot"
 	"presto/internal/discord"
-	"presto/internal/discord/api"
 )
 
-var Ping = NewSlashCommand("ping", "Have you ever heard about ping pong?", []ApplicationCommandWithHandlerDataOption{}, PingHandler).
+var Ping = bot.NewSlashCommand("ping", "Have you ever heard about ping pong?", []bot.ApplicationCommandWithHandlerDataOption{}, PingHandler).
 	ToApplicationCommand()
 
-func PingHandler(interaction api.Interaction) error {
-	start := time.Now()
-	// TODO: proper way of measuring the latency
-	latency := time.Since(start)
+func PingHandler(context bot.Context) error {
+	latency := context.Session.Latency.Milliseconds()
 
 	color := discord.EMBED_COLOR_RED
 
@@ -24,7 +20,7 @@ func PingHandler(interaction api.Interaction) error {
 		color = discord.EMBED_COLOR_YELLOW
 	}
 
-	interaction.RespondWithMessage(discord.Message{
+	context.Interaction.RespondWithMessage(discord.Message{
 		Embeds: []discord.Embed{
 			{
 				Title:       ":ping_pong: Pong!",

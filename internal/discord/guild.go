@@ -1,5 +1,14 @@
 package discord
 
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"presto/internal/config"
+	"presto/internal/log"
+)
+
 type Guild struct {
 	ID                          string        `json:"id"`
 	Name                        string        `json:"name"`
@@ -62,4 +71,41 @@ type Sticker struct {
 	GuildID     string `json:"guild_id"`
 	User        User   `json:"user"`
 	SortValue   int    `json:"sort_value"`
+}
+
+type GuildMember struct {
+	User         *User  `json:"user,omitempty"`
+	Nick         string `json:"nick,omitempty"`
+	Avatar       string `json:"avatar,omitempty"`
+	Roles        []any  `json:"roles"`
+	JoinedAt     string `json:"joined_at"`
+	PremiumSince string `json:"premium_since,omitempty"`
+	Deaf         bool   `json:"deaf"`
+	Mute         bool   `json:"mute"`
+	Pending      bool   `json:"pending,omitempty"`
+	Permissions  string `json:"permissions,omitempty"`
+}
+
+func (guild *Guild) GetIconURL() string {
+	return config.DISCORD_CDN_BASE_URL + "/icons/" + guild.ID + "/" + guild.Icon + ".png"
+}
+
+func BanMember(guildID string, memberID string) error {
+	response, statusCode := MakeRequest("/guilds/"+guildID+"/bans/"+memberID, http.MethodPut, nil)
+	if statusCode != http.StatusNoContent {
+		log.Error("Could not ban user %s from guild %s: expected status code 204 but got %d. The API response was:\n%s", statusCode, string(response))
+		return errors.New(fmt.Sprintf("Could not ban user %s from guild %s", memberID, guildID))
+	}
+
+	return nil
+}
+
+func GetGuildById(guildId string) (guild Guild) {
+	response, statusCode := MakeRequest("/guilds/"+guildId, http.MethodGet, nil)
+	if statusCode != 200 {
+		return Guild{}
+	}
+
+	json.Unmarshal(response, &guild)
+	return guild
 }

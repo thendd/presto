@@ -1,7 +1,7 @@
 package database
 
 import (
-	"presto/internal/database/config"
+	"presto/internal/config"
 	"presto/internal/log"
 
 	"gorm.io/driver/postgres"
