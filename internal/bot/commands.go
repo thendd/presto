@@ -8,28 +8,31 @@ import (
 )
 
 type ApplicationCommandWithHandlerDataOptionChoice struct {
-	Name          string            `json:"name"`
-	Localizations map[string]string `json:"name_localizations"`
-	Value         string            `json:"value"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type ApplicationCommandWithHandlerDataOption struct {
-	Type         discord.ApplicationCommandOptionType            `json:"type"`
-	Name         string                                          `json:"name"`
-	Description  string                                          `json:"description"`
-	Required     bool                                            `json:"required"`
-	Autocomplete bool                                            `json:"autocomplete"`
-	Options      []ApplicationCommandWithHandlerDataOption       `json:"options,omitempty"`
-	Choices      []ApplicationCommandWithHandlerDataOptionChoice `json:"choices,omitempty"`
-	Handler      InteractionHandler                              `json:"-"`
+	Type                     discord.ApplicationCommandOptionType                     `json:"type"`
+	Name                     string                                                   `json:"name"`
+	Description              string                                                   `json:"description"`
+	Required                 bool                                                     `json:"required"`
+	Autocomplete             bool                                                     `json:"autocomplete"`
+	Options                  []ApplicationCommandWithHandlerDataOption                `json:"options,omitempty"`
+	Choices                  []ApplicationCommandWithHandlerDataOptionChoice          `json:"choices,omitempty"`
+	Handler                  InteractionHandler                                       `json:"-"`
+	NameLocalizations        discord.ApplicationCommandOptionNameLocalizations        `json:"name_localizations"`
+	DescriptionLocalizations discord.ApplicationCommandOptionDescriptionLocalizations `json:"description_localizations"`
 }
 
 type ApplicationCommandWithHandlerData struct {
-	ID          any                                       `json:"id,omitempty"`
-	Name        string                                    `json:"name"`
-	Description string                                    `json:"description"`
-	Options     []ApplicationCommandWithHandlerDataOption `json:"options,omitempty"`
-	Type        discord.ApplicationCommandType            `json:"type,omitempty"`
+	ID                       any                                                `json:"id,omitempty"`
+	Name                     string                                             `json:"name"`
+	Description              string                                             `json:"description"`
+	Options                  []ApplicationCommandWithHandlerDataOption          `json:"options,omitempty"`
+	Type                     discord.ApplicationCommandType                     `json:"type,omitempty"`
+	NameLocalizations        discord.ApplicationCommandNameLocalizations        `json:"name_localizations"`
+	DescriptionLocalizations discord.ApplicationCommandDescriptionLocalizations `json:"description_localizations"`
 }
 
 type ApplicationCommandWithHandler struct {
@@ -78,13 +81,15 @@ func (command *SlashCommand) AddSubCommandGroup(name string) *SlashCommand {
 	return command
 }
 
-func (command *SlashCommand) AddSubCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler InteractionHandler) *SlashCommand {
+func (command *SlashCommand) AddSubCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, nameLocalizations discord.ApplicationCommandOptionNameLocalizations, descriptionLocalizations discord.ApplicationCommandOptionDescriptionLocalizations, handler InteractionHandler) *SlashCommand {
 	command.Data.Options = append(command.Data.Options, ApplicationCommandWithHandlerDataOption{
-		Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND,
-		Name:        name,
-		Description: description,
-		Options:     options,
-		Handler:     handler,
+		Type:                     discord.APPLICATION_COMMAND_OPTION_TYPE_SUB_COMMAND,
+		Name:                     name,
+		Description:              description,
+		Options:                  options,
+		Handler:                  handler,
+		NameLocalizations:        nameLocalizations,
+		DescriptionLocalizations: descriptionLocalizations,
 	})
 
 	return command
@@ -97,34 +102,38 @@ func (command *SlashCommand) ToApplicationCommand() ApplicationCommandWithHandle
 	}
 }
 
-func NewSlashCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, handler InteractionHandler) *SlashCommand {
+func NewSlashCommand(name, description string, options []ApplicationCommandWithHandlerDataOption, nameLocalizations discord.ApplicationCommandNameLocalizations, descriptionLocalizations discord.ApplicationCommandDescriptionLocalizations, handler InteractionHandler) *SlashCommand {
 	return &SlashCommand{
 		Handler: handler,
 		Data: ApplicationCommandWithHandlerData{
-			Type:        discord.APPLICATION_COMMAND_TYPE_CHAT_INPUT,
-			Name:        name,
-			Description: description,
-			Options:     options,
+			Type:                     discord.APPLICATION_COMMAND_TYPE_CHAT_INPUT,
+			Name:                     name,
+			Description:              description,
+			Options:                  options,
+			NameLocalizations:        nameLocalizations,
+			DescriptionLocalizations: descriptionLocalizations,
 		},
 	}
 }
 
-func NewUserCommand(name string, handler InteractionHandler) ApplicationCommandWithHandler {
+func NewUserCommand(name string, nameLocalizations discord.ApplicationCommandNameLocalizations, handler InteractionHandler) ApplicationCommandWithHandler {
 	return ApplicationCommandWithHandler{
 		Handler: handler,
 		Data: ApplicationCommandWithHandlerData{
-			Type: discord.APPLICATION_COMMAND_TYPE_USER,
-			Name: name,
+			Type:              discord.APPLICATION_COMMAND_TYPE_USER,
+			Name:              name,
+			NameLocalizations: nameLocalizations,
 		},
 	}
 }
 
-func NewMessageCommand(name string, handler InteractionHandler) ApplicationCommandWithHandler {
+func NewMessageCommand(name string, nameLocalizations discord.ApplicationCommandNameLocalizations, handler InteractionHandler) ApplicationCommandWithHandler {
 	return ApplicationCommandWithHandler{
 		Handler: handler,
 		Data: ApplicationCommandWithHandlerData{
-			Type: discord.APPLICATION_COMMAND_TYPE_MESSAGE,
-			Name: name,
+			Type:              discord.APPLICATION_COMMAND_TYPE_MESSAGE,
+			Name:              name,
+			NameLocalizations: nameLocalizations,
 		},
 	}
 }

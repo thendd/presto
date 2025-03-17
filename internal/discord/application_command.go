@@ -35,21 +35,35 @@ type (
 )
 
 type ApplicationCommand struct {
-	ID          any                        `json:"id,omitempty"`
-	Name        string                     `json:"name"`
-	Description string                     `json:"description"`
-	Options     []ApplicationCommandOption `json:"options,omitempty"`
-	Type        ApplicationCommandType     `json:"type,omitempty"`
+	ID                       any                                        `json:"id,omitempty"`
+	Name                     string                                     `json:"name"`
+	Description              string                                     `json:"description"`
+	Options                  []ApplicationCommandOption                 `json:"options,omitempty"`
+	Type                     ApplicationCommandType                     `json:"type,omitempty"`
+	NameLocalizations        ApplicationCommandNameLocalizations        `json:"name_localizations"`
+	DescriptionLocalizations ApplicationCommandDescriptionLocalizations `json:"description_localizations"`
 }
 
-type ApplicationCommandOption struct {
-	Type         ApplicationCommandOptionType `json:"type"`
-	Name         string                       `json:"name"`
-	Description  string                       `json:"description"`
-	Required     bool                         `json:"required"`
-	Autocomplete bool                         `json:"autocomplete"`
-	Options      []ApplicationCommandOption   `json:"options,omitempty"`
+type ApplicationCommandNameLocalizations struct {
+	PtBR string `json:"pt-BR"`
 }
+
+type ApplicationCommandDescriptionLocalizations ApplicationCommandNameLocalizations
+
+type ApplicationCommandOption struct {
+	Type                     ApplicationCommandOptionType                     `json:"type"`
+	Name                     string                                           `json:"name"`
+	Description              string                                           `json:"description"`
+	Required                 bool                                             `json:"required"`
+	Autocomplete             bool                                             `json:"autocomplete"`
+	Options                  []ApplicationCommandOption                       `json:"options,omitempty"`
+	NameLocalizations        ApplicationCommandOptionNameLocalizations        `json:"name_localizations"`
+	DescriptionLocalizations ApplicationCommandOptionDescriptionLocalizations `json:"description_localizations"`
+}
+
+type ApplicationCommandOptionNameLocalizations ApplicationCommandNameLocalizations
+
+type ApplicationCommandOptionDescriptionLocalizations ApplicationCommandDescriptionLocalizations
 
 func GetFullNamesOfApplicationCommand(command ApplicationCommand) []string {
 	var names []string

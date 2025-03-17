@@ -13,16 +13,30 @@ import (
 )
 
 var (
-	WarnUserCommand  = bot.NewUserCommand("Warn", WarnHandler)
+	WarnUserCommand = bot.NewUserCommand("Warn", discord.ApplicationCommandNameLocalizations{
+		PtBR: "Avisar",
+	}, WarnHandler)
 	WarnSlashCommand = bot.NewSlashCommand("warn", "Sends a warning to the user", []bot.ApplicationCommandWithHandlerDataOption{
 		{
 			Type:        discord.APPLICATION_COMMAND_OPTION_TYPE_USER,
 			Name:        "user",
 			Description: "The user you would like to send a warning to",
 			Required:    true,
+			NameLocalizations: discord.ApplicationCommandOptionNameLocalizations{
+				PtBR: "usuário",
+			},
+			DescriptionLocalizations: discord.ApplicationCommandOptionDescriptionLocalizations{
+				PtBR: "O usuário que receberá o aviso",
+			},
 		},
+	}, discord.ApplicationCommandNameLocalizations{
+		PtBR: "avisar",
+	}, discord.ApplicationCommandDescriptionLocalizations{
+		PtBR: "Envia um aviso ao usuário",
 	}, WarnHandler).ToApplicationCommand()
-	WarnMessageCommand = bot.NewMessageCommand("Warn", WarnHandler)
+	WarnMessageCommand = bot.NewMessageCommand("Warn", discord.ApplicationCommandNameLocalizations{
+		PtBR: "Avisar",
+	}, WarnHandler)
 )
 
 func WarnHandler(context bot.Context) error {

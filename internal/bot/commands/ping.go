@@ -6,7 +6,9 @@ import (
 	"presto/internal/discord"
 )
 
-var Ping = bot.NewSlashCommand("ping", "Have you ever heard about ping pong?", []bot.ApplicationCommandWithHandlerDataOption{}, PingHandler).
+var Ping = bot.NewSlashCommand("ping", "Have you ever heard about ping pong?", []bot.ApplicationCommandWithHandlerDataOption{}, discord.ApplicationCommandNameLocalizations{}, discord.ApplicationCommandDescriptionLocalizations{
+	PtBR: "Você já ouviu falar de ping pong?",
+}, PingHandler).
 	ToApplicationCommand()
 
 func PingHandler(context bot.Context) error {

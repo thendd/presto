@@ -21,9 +21,19 @@ var GuildSettings = bot.NewSlashCommand(
 	"settings",
 	"Anything you want to customize",
 	[]bot.ApplicationCommandWithHandlerDataOption{},
+	discord.ApplicationCommandNameLocalizations{
+		PtBR: "configurar",
+	},
+	discord.ApplicationCommandDescriptionLocalizations{
+		PtBR: "Qualquer coisa que você queira customizar",
+	},
 	func(i bot.Context) error { return nil },
 ).
-	AddSubCommand("server", "Settings for your server", []bot.ApplicationCommandWithHandlerDataOption{}, GuildSettingsHandler).
+	AddSubCommand("server", "Settings for your server", []bot.ApplicationCommandWithHandlerDataOption{}, discord.ApplicationCommandOptionNameLocalizations{
+		PtBR: "servidor",
+	}, discord.ApplicationCommandOptionDescriptionLocalizations{
+		PtBR: "Configurações para o seu servidor",
+	}, GuildSettingsHandler).
 	ToApplicationCommand()
 
 func GuildSettingsHandler(context bot.Context) error {
