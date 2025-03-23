@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"presto/internal/config"
 	"presto/internal/database"
@@ -11,6 +12,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
+	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 )
 
@@ -50,6 +54,12 @@ type Session struct {
 	Cache Cache
 
 	RegisteredCommands []ApplicationCommandWithHandler
+
+	// i18n bundle
+	I18nBundle *i18n.Bundle
+
+	// A list containig the languages that the application supports
+	SupportedLanguages []string
 }
 
 // Opens a connection with Discord's gateway following the documentation
@@ -126,6 +136,10 @@ func (session *Session) Open() error {
 	if err == nil {
 		log.Info("\"Identify\" event sent successfully")
 	}
+
+	session.SupportedLanguages = []string{"en", "pt-br"}
+
+	session.setupI18n()
 
 	return nil
 }
@@ -240,6 +254,23 @@ func (session *Session) Reconnect() error {
 	log.Info("Started attempting to reconnect")
 
 	return session.Open()
+}
+
+func (session *Session) setupI18n() {
+	log.Info("Started setting up i18n with English as the default language")
+	session.I18nBundle = i18n.NewBundle(language.English)
+
+	session.I18nBundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
+
+	for _, translation := range session.SupportedLanguages {
+		log.Info("Started loading \"%s\" translation", translation)
+		_, err := session.I18nBundle.LoadMessageFile(fmt.Sprintf("assets/translations/%s.yaml", translation))
+		if err != nil {
+			log.Fatal("Could not load translation for \"%s\": %s", translation, err.Error())
+			continue
+		}
+		log.Info("Finished loading \"%s\" translation successfully", translation)
+	}
 }
 
 func NewSession(commands []ApplicationCommandWithHandler) *Session {

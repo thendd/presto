@@ -6,7 +6,8 @@ type Guild struct {
 	OnReachMaxWarningsPerUser                           int    `gorm:"default:1"`
 	SecondsToDeleteMessagesForOnReachMaxWarningsPerUser int    `gorm:"default:0"`
 	RoleToGiveOnReachMaxWarningsPerUser                 string
-	SecondsPunishedUserShouldKeepRoleFor                int `gorm:"default:0"`
+	SecondsPunishedUserShouldKeepRoleFor                int    `gorm:"default:0"`
+	Language                                            string `gorm:"default:en"`
 	Members                                             []GuildMember
 }
 

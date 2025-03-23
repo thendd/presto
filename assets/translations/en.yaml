@@ -1,0 +1,67 @@
+ping:
+  other: "Latency is **%dms**"
+
+settings:
+  guild:
+    selectMenus:
+      selectSettingsTab:
+        placeholder: "What do you want to configure?"
+        options:
+          - label: "Language"
+            description: "What language should the application use in your server"
+          - label: "Maximum amount of warnings per user"
+            description: "What happens when a user is warned too many times"
+          - label: "Minutes to delete banned member's messages for"
+            description: "When they get too many warnings"
+          - label: "Role the member should receive"
+            description: "When they get too many warnings"
+          - label: "Minutes the user should keep the role for"
+            description: "How much time the member will keep the role for"
+    modals:
+      maxWarningsPerUser:
+
+      minutesMemberShouldKeepRoleFor:
+
+    tabs:
+      language:
+        name: "server language"
+        selectMenu:
+          placeholder: "What language should I use?"
+      maxWarningsPerUser:
+        name: "maximum amount of warnings a member can receive"
+        modal:
+          title: "Maximum quantity of warnings per user"
+          inputs:
+            - label: "Your answer"
+              placeholder: "Ex: 3"
+          error: "Your answer must be a positive, whole number"
+      onReachMaxWarningsPerUser:
+        name: "punishment for a member that receives too many warnings"
+        selectMenu:
+          placeholder: "What should I do when a use is warned too many times?"
+          options:
+            - label: "Ban"
+              description: "You can choose whether messages sent by them are deleted as well as the range of time"
+            - label: "Kick"
+              description: "Simply kicks the member out of the server"
+            - label: "Give role"
+              description: "You can choose which role and how much time the user should keep it"
+      secondsToDeleteBannedMemberMessagesFor:
+        name: "quantity of minutes to delete banned member's messages for when they get too many warnings"
+        modal:
+          title: "Minutes to delete banned member messages for"
+          inputs:
+            - label: "Your answer (0 is no messages)"
+              placeholder: "Ex: 10"
+      roleToGiveOnReachMaxWarningsPerUser:
+        name: "role to give when a member gets too many warnings"
+        selectMenu:
+          placeholder: "What role should be given to the user that is warned too many times?"
+      secondsMemberShouldKeepRoleFor:
+        name: "quantity of minutes the member should keep the role for when they get too many warnings"
+        modal:
+          title: "Minutes the member should keep the role for"
+          inputs:
+            - label: "Your answer"
+              description: "Ex: 10"
+          error: "Your answer must be a positive, whole number"

@@ -1,0 +1,4 @@
+[Latency]
+description = "A latência da aplicação com o Discord"
+one = "A latência é de **{{.Latency}}ms**"
+other = "A latência é de **{{.Latency}}ms**"
