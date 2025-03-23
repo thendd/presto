@@ -21,6 +21,8 @@ type ApplicationCommandWithHandlerDataOption struct {
 	Autocomplete bool                                            `json:"autocomplete"`
 	Options      []ApplicationCommandWithHandlerDataOption       `json:"options,omitempty"`
 	Choices      []ApplicationCommandWithHandlerDataOptionChoice `json:"choices,omitempty"`
+	MinimumValue int                                             `json:"min_value,omitempty"`
+	MaximumValue int                                             `json:"max_value,omitempty"`
 	Handler      InteractionHandler                              `json:"-"`
 }
 
@@ -52,6 +54,8 @@ func (applicationCommandWithHandler ApplicationCommandWithHandler) ToApplication
 				Required:     option.Required,
 				Autocomplete: option.Autocomplete,
 				Options:      finalOptions,
+				MinimumValue: option.MinimumValue,
+				MaximumValue: option.MaximumValue,
 			})
 		}
 

@@ -12,7 +12,7 @@ type createDMRequestBody struct {
 func CreateDM(recipientId string) Channel {
 	response, _ := MakeRequest("/users/@me/channels", http.MethodPost, createDMRequestBody{
 		RecipientID: recipientId,
-	})
+	}, map[string]string{})
 
 	var dmChannel Channel
 	json.Unmarshal(response, &dmChannel)

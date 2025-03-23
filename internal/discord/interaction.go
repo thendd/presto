@@ -87,7 +87,7 @@ type RespondInteractionRequestBody struct {
 }
 
 func (ctx Interaction) EditOriginalInteraction(message Message, originalInteractionToken string) error {
-	response, statusCode := MakeRequest("/webhooks/"+config.DISCORD_APPLICATION_ID+"/"+originalInteractionToken+"/messages/@original", http.MethodPatch, message)
+	response, statusCode := MakeRequest("/webhooks/"+config.DISCORD_APPLICATION_ID+"/"+originalInteractionToken+"/messages/@original", http.MethodPatch, message, map[string]string{})
 	if statusCode != http.StatusOK {
 		return errors.New(string(response))
 	}
@@ -96,7 +96,7 @@ func (ctx Interaction) EditOriginalInteraction(message Message, originalInteract
 		Type: INTERACTION_CALLBACK_TYPE_UPDATE_MESSAGE,
 	}
 
-	response, statusCode = MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
+	response, statusCode = MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body, map[string]string{})
 
 	if statusCode != http.StatusNoContent {
 		return errors.New(string(response))
@@ -111,7 +111,7 @@ func (ctx Interaction) RespondWithMessage(message Message) error {
 		Data: message,
 	}
 
-	response, statusCode := MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
+	response, statusCode := MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body, map[string]string{})
 	if statusCode != http.StatusNoContent {
 		return errors.New(string(response))
 	}
@@ -125,7 +125,7 @@ func (ctx Interaction) RespondWithModal(modal Modal) error {
 		Data: modal,
 	}
 
-	response, statusCode := MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body)
+	response, statusCode := MakeRequest("/interactions/"+ctx.Data.ID+"/"+ctx.Data.Token+"/callback", http.MethodPost, body, map[string]string{})
 	if statusCode != http.StatusNoContent {
 		return errors.New(string(response))
 	}
