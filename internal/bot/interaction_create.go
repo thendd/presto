@@ -55,6 +55,7 @@ func handleApplicationCommands(session *Session, interaction discord.Interaction
 				Embeds: []discord.Embed{
 					{
 						Description: err.Error(),
+						Color:       discord.EMBED_COLOR_RED,
 					},
 				},
 				Flags: discord.MESSAGE_FLAG_EPHEMERAL,

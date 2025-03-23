@@ -19,6 +19,7 @@ func main() {
 		commands.WarnSlashCommand,
 		commands.WarnMessageCommand,
 		commands.GuildSettings,
+		commands.Clear,
 	}
 
 	session := bot.NewSession(localApplicationCommands)

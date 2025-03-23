@@ -49,6 +49,8 @@ type ApplicationCommandOption struct {
 	Required     bool                         `json:"required"`
 	Autocomplete bool                         `json:"autocomplete"`
 	Options      []ApplicationCommandOption   `json:"options,omitempty"`
+	MinimumValue int                          `json:"min_value,omitempty"`
+	MaximumValue int                          `json:"max_value,omitempty"`
 }
 
 func GetFullNamesOfApplicationCommand(command ApplicationCommand) []string {
@@ -104,7 +106,7 @@ func CompareApplicationCommands(a ApplicationCommand, b ApplicationCommand) bool
 
 // Fetches global application commands
 func GetGlobalApplicationCommands() (response []ApplicationCommand) {
-	rawResponse, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/commands", http.MethodGet, nil)
+	rawResponse, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/commands", http.MethodGet, nil, map[string]string{})
 
 	if statusCode != http.StatusOK {
 		log.Fatal("Could not get global application commands. Expected status code 200 and got %d", statusCode)
@@ -116,7 +118,7 @@ func GetGlobalApplicationCommands() (response []ApplicationCommand) {
 
 // Fetches application commands registered in the test guild
 func GetTestingGuildApplicationCommands() (response []ApplicationCommand) {
-	rawResponse, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/guilds/"+config.DISCORD_TESTING_GUILD_ID+"/commands", http.MethodGet, nil)
+	rawResponse, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/guilds/"+config.DISCORD_TESTING_GUILD_ID+"/commands", http.MethodGet, nil, map[string]string{})
 
 	if statusCode != http.StatusOK {
 		log.Fatal("Could not get testing guild application commands. Expected status code 200 and got %d", statusCode)
@@ -129,7 +131,7 @@ func GetTestingGuildApplicationCommands() (response []ApplicationCommand) {
 // Creates a global application command
 func CreateGlobalApplicationCommand(applicationCommand ApplicationCommand) {
 	body, _ := json.Marshal(applicationCommand)
-	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/commands", http.MethodPost, body)
+	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/commands", http.MethodPost, body, map[string]string{})
 
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		log.Fatal("Could not create global application command. Expected status code 200 or 201 and got %d", statusCode)
@@ -138,7 +140,7 @@ func CreateGlobalApplicationCommand(applicationCommand ApplicationCommand) {
 
 // Creates an application command in the testing guild
 func CreateTestingGuildApplicationCommand(applicationCommand ApplicationCommand) {
-	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/guilds/"+config.DISCORD_TESTING_GUILD_ID+"/commands", http.MethodPost, applicationCommand)
+	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/guilds/"+config.DISCORD_TESTING_GUILD_ID+"/commands", http.MethodPost, applicationCommand, map[string]string{})
 
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		log.Fatal("Could not create testing guild application commands. Expected status code 200 or 201 and got %d", statusCode)
@@ -147,7 +149,7 @@ func CreateTestingGuildApplicationCommand(applicationCommand ApplicationCommand)
 
 // Deletes an application command globally
 func DeleteGlobalApplicationCommand(id string) {
-	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/commands/"+id, http.MethodDelete, nil)
+	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/commands/"+id, http.MethodDelete, nil, map[string]string{})
 
 	if statusCode != http.StatusNoContent {
 		log.Fatal("Could not delete global application command. Expected status code 204 and got %d", statusCode)
@@ -156,7 +158,7 @@ func DeleteGlobalApplicationCommand(id string) {
 
 // Deletes an application command in the testing guild
 func DeleteTestingGuildApplicationCommand(id string) {
-	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/guilds/"+config.DISCORD_TESTING_GUILD_ID+"/commands/"+id, http.MethodDelete, nil)
+	_, statusCode := MakeRequest("/applications/"+config.DISCORD_APPLICATION_ID+"/guilds/"+config.DISCORD_TESTING_GUILD_ID+"/commands/"+id, http.MethodDelete, nil, map[string]string{})
 
 	if statusCode != http.StatusNoContent {
 		log.Fatal("Could not delete testing guild application command. Expected status code 204 and got %d", statusCode)

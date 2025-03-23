@@ -14,7 +14,7 @@ import (
 var client = http.Client{}
 
 // Creates an `http.Request` object and does a request using a global `http.Client`
-func MakeRequest(endpoint string, method string, body any) ([]byte, int) {
+func MakeRequest(endpoint string, method string, body any, headers map[string]string) ([]byte, int) {
 	var buffer bytes.Buffer
 
 	if body != nil {
@@ -30,6 +30,10 @@ func MakeRequest(endpoint string, method string, body any) ([]byte, int) {
 
 	request.Header.Add("Authorization", "Bot "+config.DISCORD_BOT_TOKEN)
 	request.Header.Add("Content-Type", "application/json")
+
+	for k, v := range headers {
+		request.Header.Add(k, v)
+	}
 
 	// Ignore error since non-2xx status code doesn't cause any errors.
 	// However, if Discord's API is down, the request won't work. In the future, this will

@@ -23,7 +23,7 @@ type getGatewayResponseBody struct {
 func GetGateway() (response getGatewayResponseBody) {
 	log.Info("Started fetching Discord's websocket URL")
 
-	rawResponse, statusCode := MakeRequest("/gateway/bot", http.MethodGet, nil)
+	rawResponse, statusCode := MakeRequest("/gateway/bot", http.MethodGet, nil, map[string]string{})
 	json.Unmarshal(rawResponse, &response)
 
 	if statusCode != http.StatusOK {
