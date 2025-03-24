@@ -20,4 +20,4 @@ WORKDIR /home/presto
 
 COPY --chown=presto:presto --from=builder /root/build/app .
 
-CMD [ "/home/presto/app" ]
+CMD [ "/home/presto/app", "--debug_flags=$DEBUG_FLAGS" ]
