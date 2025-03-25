@@ -142,7 +142,7 @@ func (session *Session) SendIndividualHeartbeat() {
 	if session.LastSequenceNumber == 0 {
 		session.Connection.WriteJSON(WebsocketEventPayload{
 			Opcode: discord.HEARTBEAT_EVENT_OPCODE,
-			Data:   session.LastSequenceNumber,
+			Data:   nil,
 		})
 		log.Info("As the application has not received any events, the data sent in the hearbeat is null")
 		return
