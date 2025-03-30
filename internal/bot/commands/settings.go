@@ -8,7 +8,6 @@ import (
 	"presto/internal/discord"
 	"presto/internal/log"
 	"strconv"
-	"time"
 )
 
 type SelectMenuInput struct {
@@ -36,9 +35,7 @@ func GuildSettingsHandler(context bot.Context) error {
 		return errors.UnknwonError
 	}
 
-	selectMenu := discord.MessageComponent{
-		Type:        discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
-		CustomID:    strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.Member.User.ID,
+	selectMenu := bot.NewSelectMenuWithHandler(discord.MessageComponent{
 		Placeholder: "What do you want to configure?",
 		Options: []discord.SelectOption{
 			{
@@ -51,17 +48,17 @@ func GuildSettingsHandler(context bot.Context) error {
 				Value:       "1",
 			},
 		},
-	}
+	}, GuildSettingsSelectMenuHandler, []any{guild, context.Interaction.Data.Token})
 
 	switch guild.OnReachMaxWarningsPerUser {
 	case int(database.ON_REACH_MAX_WARNINGS_PER_USER_BAN):
-		selectMenu.Options = append(selectMenu.Options, discord.SelectOption{
+		selectMenu.Data.Options = append(selectMenu.Data.Options, discord.SelectOption{
 			Label:       "Minutes to delete banned user messages for",
 			Description: "If punishment is \"Ban\", deletes messages sent x minutes before",
 			Value:       "2",
 		})
 	case int(database.ON_REACH_MAX_WARNINGS_PER_USER_GIVE_ROLE):
-		selectMenu.Options = append(selectMenu.Options, discord.SelectOption{
+		selectMenu.Data.Options = append(selectMenu.Data.Options, discord.SelectOption{
 			Label:       "Role to give to user",
 			Description: "If punishment is \"Give role\", this role will be given to the user",
 			Value:       "3",
@@ -72,18 +69,14 @@ func GuildSettingsHandler(context bot.Context) error {
 		})
 	}
 
-	context.Session.Cache.SelectMenus.Append(bot.SelectMenuWithHandler{
-		Data:    selectMenu,
-		Handler: GuildSettingsSelectMenuHandler,
-		Args:    []any{guild, context.Interaction.Data.Token},
-	})
+	context.Session.Cache.SelectMenus.Append(selectMenu)
 
 	err := context.Interaction.RespondWithMessage(discord.Message{
 		Components: []discord.MessageComponent{
 			{
 				Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
 				Components: []discord.MessageComponent{
-					selectMenu,
+					selectMenu.Data,
 				},
 			},
 		},
@@ -101,14 +94,13 @@ func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 	originalInteractionToken := args[1].(string)
 	settingsTab, _ := strconv.Atoi(context.Interaction.Data.Data.Values[0])
 
-	modalTemplate := discord.Modal{
-		CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.Member.User.ID,
+	modalTemplate := bot.NewModalWithHandler(discord.Modal{
 		Components: []discord.MessageComponent{
 			{
 				Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
 			},
 		},
-	}
+	}, func(ctx bot.Context, a ...any) error { return nil }, []any{})
 
 	inputs := []SelectMenuInput{
 		{
@@ -222,12 +214,12 @@ func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 		return nil
 	}
 
+	modalTemplate.Handler = settingsTabHandler
+
 	switch settingsTab {
 	case 0:
-		modalTemplate.Title = "Max warnings per user"
-		modalTemplate.Components[0].Components = append(modalTemplate.Components[0].Components, discord.MessageComponent{
-			CustomID:    "text-input",
-			Type:        discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
+		modalTemplate.Data.Title = "Max warnings per user"
+		modalTemplate.Data.Components[0].Components = append(modalTemplate.Data.Components[0].Components, discord.NewTextInputComponent(discord.MessageComponent{
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
 			Label:       "Your answer",
 			Placeholder: "Ex: 3",
@@ -235,18 +227,13 @@ func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 			Required:    true,
 			MinLength:   1,
 			MaxLength:   2,
-		})
+		}))
 
-		context.Session.Cache.Modals.Append(bot.ModalWithHandler{
-			Data:    modalTemplate,
-			Handler: settingsTabHandler,
-		})
+		context.Session.Cache.Modals.Append(modalTemplate)
 
-		context.Interaction.RespondWithModal(modalTemplate)
+		context.Interaction.RespondWithModal(modalTemplate.Data)
 	case 1:
-		selectMenu := discord.MessageComponent{
-			Type:     discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
-			CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.ChannelID + "-" + context.Interaction.Data.Member.User.ID,
+		selectMenu := bot.NewSelectMenuWithHandler(discord.MessageComponent{
 			Options: []discord.SelectOption{
 				{
 					Label:       "Ban",
@@ -264,28 +251,23 @@ func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 					Value:       "2",
 				},
 			},
-		}
+		}, settingsTabHandler, []any{})
 
-		context.Session.Cache.SelectMenus.Append(bot.SelectMenuWithHandler{
-			Data:    selectMenu,
-			Handler: settingsTabHandler,
-		})
+		context.Session.Cache.SelectMenus.Append(selectMenu)
 
 		context.Interaction.EditOriginalInteraction(discord.Message{
 			Content: "What should I do when user is warned too many times?",
 			Components: []discord.MessageComponent{
 				{
 					Type:       discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
-					Components: []discord.MessageComponent{selectMenu},
+					Components: []discord.MessageComponent{selectMenu.Data},
 				},
 			},
 			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 		}, originalInteractionToken)
 	case 2:
-		modalTemplate.Title = "Quantity of minutes to delete banned user messages for"
-		modalTemplate.Components[0].Components = append(modalTemplate.Components[0].Components, discord.MessageComponent{
-			CustomID:    "text-input",
-			Type:        discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
+		modalTemplate.Data.Title = "Quantity of minutes to delete banned user messages for"
+		modalTemplate.Data.Components[0].Components = append(modalTemplate.Data.Components[0].Components, discord.MessageComponent{
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
 			Label:       "Your answer (0 is no messages)",
 			Placeholder: "Ex: 10",
@@ -295,38 +277,27 @@ func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 			MaxLength:   5,
 		})
 
-		context.Session.Cache.Modals.Append(bot.ModalWithHandler{
-			Data:    modalTemplate,
-			Handler: settingsTabHandler,
-		})
+		context.Session.Cache.Modals.Append(modalTemplate)
 
-		context.Interaction.RespondWithModal(modalTemplate)
+		context.Interaction.RespondWithModal(modalTemplate.Data)
 	case 3:
-		selectMenu := discord.MessageComponent{
-			Type:     discord.MESSAGE_COMPONENT_TYPE_ROLE_SELECT,
-			CustomID: strconv.Itoa(int(time.Now().UnixMilli())) + "-" + context.Interaction.Data.GuildID + "-" + context.Interaction.Data.ChannelID + "-" + context.Interaction.Data.Member.User.ID,
-		}
+		selectMenu := bot.NewRoleSelectMenuWithHandler(discord.MessageComponent{}, settingsTabHandler, []any{})
 
-		context.Session.Cache.SelectMenus.Append(bot.SelectMenuWithHandler{
-			Data:    selectMenu,
-			Handler: settingsTabHandler,
-		})
+		context.Session.Cache.SelectMenus.Append(selectMenu)
 
 		context.Interaction.EditOriginalInteraction(discord.Message{
 			Content: "What role should be given to the user that is warned too many times?",
 			Components: []discord.MessageComponent{
 				{
 					Type:       discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
-					Components: []discord.MessageComponent{selectMenu},
+					Components: []discord.MessageComponent{selectMenu.Data},
 				},
 			},
 			Flags: discord.MESSAGE_FLAG_EPHEMERAL,
 		}, originalInteractionToken)
 	case 4:
-		modalTemplate.Title = "Minutes the user should keep the role for"
-		modalTemplate.Components[0].Components = append(modalTemplate.Components[0].Components, discord.MessageComponent{
-			CustomID:    "text-input",
-			Type:        discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
+		modalTemplate.Data.Title = "Minutes the user should keep the role for"
+		modalTemplate.Data.Components[0].Components = append(modalTemplate.Data.Components[0].Components, discord.NewTextInputComponent(discord.MessageComponent{
 			Style:       discord.TEXT_INPUT_STYLE_SHORT,
 			Label:       "Your answer",
 			Placeholder: "Ex: 10",
@@ -334,14 +305,11 @@ func GuildSettingsSelectMenuHandler(context bot.Context, args ...any) error {
 			Required:    true,
 			MinLength:   1,
 			MaxLength:   5,
-		})
+		}))
 
-		context.Session.Cache.Modals.Append(bot.ModalWithHandler{
-			Data:    modalTemplate,
-			Handler: settingsTabHandler,
-		})
+		context.Session.Cache.Modals.Append(modalTemplate)
 
-		context.Interaction.RespondWithModal(modalTemplate)
+		context.Interaction.RespondWithModal(modalTemplate.Data)
 	}
 
 	return nil

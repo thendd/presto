@@ -5,8 +5,6 @@ import (
 	"presto/internal/bot"
 	"presto/internal/bot/errors"
 	"presto/internal/log"
-	"strings"
-	"time"
 
 	"presto/internal/database"
 	"presto/internal/discord"
@@ -28,42 +26,36 @@ var (
 func WarnHandler(context bot.Context) error {
 	textInputLabel := "Reason"
 	isTextInputRequired := true
-	modalCustomId := fmt.Sprintf("%d-%s-", time.Now().UnixMilli(), context.Interaction.Data.Member.User.ID)
+	args := []any{context.Interaction.Data.Data.Options[0].Value.(string)}
 
 	switch context.Interaction.Data.Data.Type {
-	case discord.APPLICATION_COMMAND_TYPE_CHAT_INPUT:
-		modalCustomId += context.Interaction.Data.Data.Options[0].Value.(string)
 	case discord.APPLICATION_COMMAND_TYPE_USER:
-		modalCustomId += context.Interaction.Data.Data.TargetID
+		args[0] = context.Interaction.Data.Data.TargetID
 	case discord.APPLICATION_COMMAND_TYPE_MESSAGE:
 		message := context.Interaction.Data.Data.Resolved.Messages[context.Interaction.Data.Data.TargetID]
-		modalCustomId += message.Author.ID + "-" + message.ChannelID + "-" + message.ID
+		args[0] = message.Author.ID
+		args = append(args, message.ChannelID, message.ID)
 		textInputLabel = "Additional info"
 		isTextInputRequired = false
 	}
 
-	modal := bot.ModalWithHandler{
-		Data: discord.Modal{
-			CustomID: modalCustomId,
-			Title:    "Warning details",
-			Components: []discord.MessageComponent{
-				{
-					Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
-					Components: []discord.MessageComponent{
-						{
-							CustomID:  modalCustomId + "-0",
-							Type:      discord.MESSAGE_COMPONENT_TYPE_TEXT_INPUT,
-							Label:     textInputLabel,
-							Style:     discord.TEXT_INPUT_STYLE_PARAGRAPH,
-							MaxLength: 1500,
-							Required:  isTextInputRequired,
-						},
-					},
+	modal := bot.NewModalWithHandler(discord.Modal{
+		Title: "Warning details",
+		Components: []discord.MessageComponent{
+			{
+				Type: discord.MESSAGE_COMPONENT_TYPE_ACTION_ROW,
+				Components: []discord.MessageComponent{
+					discord.NewTextInputComponent(discord.MessageComponent{
+
+						Label:     textInputLabel,
+						Style:     discord.TEXT_INPUT_STYLE_PARAGRAPH,
+						MaxLength: 1500,
+						Required:  isTextInputRequired,
+					}),
 				},
 			},
 		},
-		Handler: WarnModelHandler,
-	}
+	}, WarnModalHandler, []any{})
 
 	context.Session.Cache.Modals.Append(modal)
 	context.Interaction.RespondWithModal(modal.Data)
@@ -71,10 +63,8 @@ func WarnHandler(context bot.Context) error {
 	return nil
 }
 
-func WarnModelHandler(context bot.Context, _ ...any) error {
-	splittedCustomID := strings.Split(context.Interaction.Data.Data.CustomID, "-")
-
-	targetId := strings.Split(context.Interaction.Data.Data.CustomID, "-")[2]
+func WarnModalHandler(context bot.Context, args ...any) error {
+	targetId := args[0].(string)
 
 	guildData := &database.Guild{
 		ID: context.Interaction.Data.GuildID,
@@ -157,8 +147,8 @@ func WarnModelHandler(context bot.Context, _ ...any) error {
 		warningEmbedDescription += "but no reason was given."
 	}
 
-	if len(splittedCustomID) == 5 {
-		warningEmbedDescription += fmt.Sprintf("**[This message](%s)** was attached to the warning.", fmt.Sprintf("https://discord.com/channels/%s/%s/%s", context.Interaction.Data.GuildID, splittedCustomID[3], splittedCustomID[4]))
+	if len(args) > 1 {
+		warningEmbedDescription += fmt.Sprintf("**[This message](%s)** was attached to the warning.", fmt.Sprintf("https://discord.com/channels/%s/%s/%s", context.Interaction.Data.GuildID, args[1], args[2]))
 	}
 
 	warningEmbed := discord.Embed{

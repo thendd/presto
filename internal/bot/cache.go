@@ -4,13 +4,9 @@ import (
 	"errors"
 	"presto/internal/discord"
 	"slices"
-)
 
-type SelectMenuWithHandler struct {
-	Data    discord.MessageComponent
-	Handler func(Context, ...any) error
-	Args    []any
-}
+	"github.com/google/uuid"
+)
 
 type SelectMenusWithHandler []SelectMenuWithHandler
 
@@ -20,12 +16,6 @@ func (selectMenus *SelectMenusWithHandler) Append(selectMenu SelectMenuWithHandl
 
 func (selectMenus *SelectMenusWithHandler) Remove(index int) {
 	*selectMenus = slices.Delete(*selectMenus, index, index+1)
-}
-
-type ModalWithHandler struct {
-	Data    discord.Modal
-	Handler func(Context, ...any) error
-	Args    []any
 }
 
 type ModalsWithHandler []ModalWithHandler
@@ -77,4 +67,44 @@ type Cache struct {
 	Guilds      Guilds
 	SelectMenus SelectMenusWithHandler
 	Modals      ModalsWithHandler
+}
+
+func NewSelectMenuWithHandler(data discord.MessageComponent, handler func(Context, ...any) error, args []any) SelectMenuWithHandler {
+	return SelectMenuWithHandler{
+		Data: discord.MessageComponent{
+			CustomID:    uuid.NewString(),
+			Type:        discord.MESSAGE_COMPONENT_TYPE_SELECT_MENU,
+			Title:       data.Title,
+			Style:       data.Style,
+			Label:       data.Label,
+			Placeholder: data.Placeholder,
+			MinLength:   data.MinLength,
+			MaxLength:   data.MaxLength,
+			Required:    data.Required,
+			Value:       data.Value,
+			Options:     data.Options,
+			Components:  data.Components,
+		},
+		Handler: handler,
+		Args:    args,
+	}
+}
+
+func NewRoleSelectMenuWithHandler(data discord.MessageComponent, handler func(Context, ...any) error, args []any) SelectMenuWithHandler {
+	selectMenu := NewSelectMenuWithHandler(data, handler, args)
+	selectMenu.Data.Type = discord.MESSAGE_COMPONENT_TYPE_ROLE_SELECT
+
+	return selectMenu
+}
+
+func NewModalWithHandler(data discord.Modal, handler func(Context, ...any) error, args []any) ModalWithHandler {
+	return ModalWithHandler{
+		Data: discord.Modal{
+			CustomID:   uuid.NewString(),
+			Title:      data.Title,
+			Components: data.Components,
+		},
+		Handler: handler,
+		Args:    args,
+	}
 }
