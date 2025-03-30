@@ -27,7 +27,7 @@ func GetGateway() (response getGatewayResponseBody) {
 	json.Unmarshal(rawResponse, &response)
 
 	if statusCode != http.StatusOK {
-		log.Fatal("Could not get gateway URL. Expected status code 200 and got %d", statusCode)
+		log.Fatalf("Could not get gateway URL. Expected status code 200 and got %d", statusCode)
 	}
 
 	log.Info("Finished fetching Discord's WSS URL successfully")
