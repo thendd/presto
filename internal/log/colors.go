@@ -1,8 +1,9 @@
 package log
 
 const (
-	RESET  = "\033[0m"
-	RED    = "\033[31m"
-	YELLOW = "\033[33m"
-	BLUE   = "\033[34m"
+	ColorReset  string = "\033[0m"
+	ColorRed    string = "\033[31m"
+	ColorBlue   string = "\033[34m"
+	ColorGreen  string = "\033[32m"
+	ColorYellow string = "\033[33m"
 )

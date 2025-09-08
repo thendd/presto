@@ -67,7 +67,7 @@ func (session *Session) Open() error {
 	session.Dialer = &websocket.Dialer{}
 	session.Connection, _, err = session.Dialer.Dial(session.GatewayURL, http.Header{})
 	if err != nil {
-		log.Fatal("There was an error while connecting to the gateway %s: %s")
+		log.Fatalf("There was an error while connecting to the gateway %s: %s", session.GatewayURL, err)
 
 		// Clear cached gateway URL to ensure a new one when reconnecting
 		session.GatewayURL = ""
@@ -92,7 +92,7 @@ func (session *Session) Open() error {
 	json.Unmarshal(response, &helloEventPayload)
 
 	if helloEventPayload.Opcode != discord.HELLO_EVENT_OPCODE {
-		log.Error("The event received after establishing a connection to Discord's gateway was not \"Hello\" (opcode 10), which goes against the documentation. Instead, received opcode %d", helloEventPayload.Opcode)
+		log.Errorf("The event received after establishing a connection to Discord's gateway was not \"Hello\" (opcode 10), which goes against the documentation. Instead, received opcode %d", helloEventPayload.Opcode)
 		return errors.New("event received is not \"Hello\"")
 	}
 	log.Info("\"Hello\" event was received successfully")
@@ -211,10 +211,10 @@ func (session *Session) Listen(connection *websocket.Conn) {
 					ID: guildData.ID,
 				})
 				if result.Error != nil && !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-					log.Error("Failed to create guild %s: %s", guildData.ID, result.Error)
+					log.Errorf("Failed to create guild %s: %s", guildData.ID, result.Error)
 					continue
 				} else if result.Error != nil {
-					log.Error("Guild %s was not created because it already exists in the database", guildData.ID)
+					log.Errorf("Guild %s was not created because it already exists in the database", guildData.ID)
 					continue
 				}
 
